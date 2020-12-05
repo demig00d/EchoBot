@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 06efcb40e824392f72a0bc8bf4b31802c93ce4eb070d6ffe05e67c5ed9b2a801
+-- hash: 88aacde964c73fe290281c3055a3920962da857cbada2a4f4e5c7b2ffa1d59fd
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -26,6 +26,12 @@ source-repository head
   location: https://github.com/githubuser/haskellEchoBot
 
 library
+  exposed-modules:
+      Bot
+      Configuration
+      Domain
+      Logging
+      Utils
   other-modules:
       Paths_haskellEchoBot
   hs-source-dirs:
