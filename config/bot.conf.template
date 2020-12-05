@@ -1,0 +1,11 @@
+{
+  "bot_settings": 
+    {
+      "help_message": "I am bot that can echo your messages.\nTo control me send one of this commands:\n  /help\n  /repeat"
+      "repeat_message": "Choose number of repeats:",
+      "number_of_repeats": 2
+    },
+  "platform_name":  "telegram",
+  "token": "<token>",
+  "log_level": "Debug"
+}
