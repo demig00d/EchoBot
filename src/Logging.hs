@@ -45,9 +45,9 @@ log msgLvl appLvl msg =
      then S8.putStrLn $ "[" <> (S8.pack $ show msgLvl) <> "] " <> toLogStr msg
      else return ()
 
-logDebug, logInfo, logWarning :: Priority -> String -> IO ()
+logDebug, logInfo, logWarning :: ToLogStr msg => Priority -> msg -> IO ()
 logDebug   = log Debug
 logInfo    = log Info
 logWarning = log Warning
 
-logError = putStrLn . ("[Error] "<>)
+logError msg = S8.putStrLn $ "[Error] " <> toLogStr msg
