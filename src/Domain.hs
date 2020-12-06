@@ -1,14 +1,18 @@
-{-# LANGUAGE StrictData #-}
+{-# LANGUAGE StrictData      #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Domain where
 
 import           Data.Text (Text)
+import           Logging   (Priority)
+import           Utils     (deriveManyJSON)
 
 
-data Model a =
+data Model env =
   Model
     { mBotSettings   :: BotSettings
-    , mPlatformEnv   :: a
+    , mPlatformEnv   :: env
     , mUsersSettings :: [UserSettings]
+    , mLogLevel      :: Priority
     }
 
 data BotSettings =
@@ -24,3 +28,16 @@ data UserSettings =
     , uNumberOfRepeats :: Int
     }
 
+data Config =
+  Config
+    { cBotSettings  :: BotSettings
+    , cPlatformName :: String
+    , cToken        :: String
+    , cGroupId      :: (Maybe String)
+    , cLogLevel     :: Priority
+    }
+
+$(deriveManyJSON
+    [''Config
+    ,''BotSettings
+    ])

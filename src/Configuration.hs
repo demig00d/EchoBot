@@ -1,5 +1,4 @@
-{-# LANGUAGE LambdaCase      #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LambdaCase #-}
 module Configuration
   ( getConfig
   , Config(..)
@@ -12,9 +11,7 @@ import           Data.Char             (toLower)
 import           Data.Text             (Text)
 import           System.IO.Error
 
-import           Domain                (BotSettings (..))
-import           Logging
-import           Utils                 (deriveManyJSON)
+import           Domain                (BotSettings (..), Config (..))
 
 
 getConfig :: FilePath -> IO (Either String Config)
@@ -42,17 +39,3 @@ verifyConfig config = case toLower <$> cPlatformName config of
     verifyVKontakte = \case
       Just groupId -> Right config{cPlatformName = "vkontakte"}
       _            -> Left "group_id is required for VKontakte."
-
-data Config =
-  Config
-    { cBotSettings  :: !BotSettings
-    , cPlatformName :: !String
-    , cToken        :: !String
-    , cGroupId      :: !(Maybe String)
-    , cLogLevel     :: !Priority
-    }
-
-$(deriveManyJSON
-    [''Config
-    ,''BotSettings
-    ])
