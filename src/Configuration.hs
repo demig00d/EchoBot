@@ -11,7 +11,7 @@ import           Data.Char             (toLower)
 import           Data.Text             (Text)
 import           System.IO.Error
 
-import           Domain                (BotSettings (..), Config (..))
+import           Bot.Types             (BotSettings (..), Config (..))
 
 
 getConfig :: FilePath -> IO (Either String Config)

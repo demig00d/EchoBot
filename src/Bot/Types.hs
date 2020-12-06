@@ -1,6 +1,6 @@
 {-# LANGUAGE StrictData      #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Domain where
+module Bot.Types where
 
 import           Data.Text (Text)
 import           Logging   (Priority)
