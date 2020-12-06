@@ -35,13 +35,13 @@ readConfig path =
 
 verifyConfig :: Config -> Either String Config
 verifyConfig config = case toLower <$> cPlatformName config of
-  "telegram"  -> Right config
+  "telegram"  -> Right config{cPlatformName = "telegram"}
   "vkontakte" -> verifyVKontakte $ cGroupId config
   name        -> Left $ "Can't recognize bot platform '" <> name <> "'."
   where
     verifyVKontakte = \case
-      Just groupId -> Right config
-      _            -> Left "group_id is required for VKontakte"
+      Just groupId -> Right config{cPlatformName = "vkontakte"}
+      _            -> Left "group_id is required for VKontakte."
 
 data Config =
   Config
