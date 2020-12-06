@@ -1,11 +1,22 @@
 {-# LANGUAGE StrictData      #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies    #-}
 module Bot.Types where
 
-import           Data.Text (Text)
-import           Logging   (Priority)
-import           Utils     (deriveManyJSON)
+import           Control.Monad (foldM)
+import           Data.Text     (Text)
 
+import           Logging       (Priority)
+import           Utils         (deriveManyJSON)
+
+
+class Bot env where
+  type BotUpdate env
+  getUpdates    :: env -> IO (Either String [BotUpdate env])
+  handleUpdate  :: Model env -> BotUpdate env -> IO (Model env)
+
+  handleUpdates :: Model env -> [BotUpdate env] -> IO (Model env)
+  handleUpdates model updates = foldM handleUpdate model updates
 
 data Model env =
   Model
@@ -41,3 +52,4 @@ $(deriveManyJSON
     [''Config
     ,''BotSettings
     ])
+
