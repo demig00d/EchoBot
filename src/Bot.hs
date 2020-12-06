@@ -22,16 +22,23 @@ startBot path = do
 
     Right cfg@Config{cPlatformName="telegram",..} ->
 
-      logInfo cLogLevel "Configuration file has been read and decoded."
-      >> logInfo cLogLevel "Telegram platform was selected."
+      logInfo cLogLevel ("Configuration file has been read and decoded." :: String)
+      >> logInfo cLogLevel ("Telegram platform was selected." :: String)
       >> Telegram.getModel cfg  >>= either logError (runReaderT mainLoop)
 
     Right cfg@Config{cPlatformName="vkontakte",..} ->
-      logInfo cLogLevel "Configuration file has been read and decoded."
-      >> logInfo cLogLevel "VKontakte platform was selected."
+      logInfo cLogLevel ("Configuration file has been read and decoded." :: String)
+      >> logInfo cLogLevel ("VKontakte platform was selected." :: String)
       >> VKontakte.getModel cfg >>= either logError (runReaderT mainLoop)
 
 
-mainLoop :: (MonadReader (Model env) m, MonadIO m) => m ()
-mainLoop = undefined
+mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
+mainLoop = do
+  model@Model{..} <- ask
+  u <- liftIO $ getUpdates mPlatformEnv
+  case u of
+    Left msg      -> liftIO $ logError msg
+    Right updates -> do
+      model' <- liftIO $ handleUpdates model updates
+      runReaderT mainLoop model'
 
