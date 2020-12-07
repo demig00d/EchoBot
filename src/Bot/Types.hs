@@ -10,7 +10,7 @@ import           Logging       (Priority)
 import           Utils         (deriveManyJSON)
 
 
-class Bot env where
+class Show env => Bot env where
   type BotUpdate env
   getUpdates    :: env -> IO (Either String [BotUpdate env])
   handleUpdate  :: Model env -> BotUpdate env -> IO (Model env)
@@ -24,20 +24,20 @@ data Model env =
     , mPlatformEnv   :: env
     , mUsersSettings :: [UserSettings]
     , mLogLevel      :: Priority
-    }
+    } deriving Show
 
 data BotSettings =
   BotSettings
     { bHelpMessage     :: Text
     , bRepeatMessage   :: Text
     , bNumberOfRepeats :: Int
-    }
+    } deriving Show
 
 data UserSettings =
   UserSettings
     { uId              :: Int
     , uNumberOfRepeats :: Int
-    }
+    } deriving Show
 
 data Config =
   Config
