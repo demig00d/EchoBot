@@ -1,11 +1,22 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies    #-}
 module Bot.Telegram where
 
 import           Bot.Types
 import           Telegram.API
+import           Telegram.Types
 
 
-newtype TelegramEnv = TelegramEnv {getToken :: String}
+instance Bot TelegramEnv where
+  type BotUpdate TelegramEnv = Update
+  getUpdates   = undefined
+  handleUpdate = undefined
+
+data TelegramEnv =
+  TelegramEnv
+    { getToken :: String
+    , offset   :: Int
+    } deriving Show
 
 getModel :: Config -> IO (Either String (Model TelegramEnv))
 getModel Config{..} = do
@@ -16,7 +27,7 @@ getModel Config{..} = do
   where
     model = Model
               { mBotSettings   = cBotSettings
-              , mPlatformEnv   = TelegramEnv cToken
+              , mPlatformEnv   = TelegramEnv cToken 0
               , mUsersSettings = []
               , mLogLevel      = cLogLevel
               }
