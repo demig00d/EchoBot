@@ -13,24 +13,29 @@ import           Network.HTTP.Types         (hContentType)
 
 
 sendPost :: String -> L8.ByteString -> IO (Either L8.ByteString L8.ByteString)
-sendPost url body = do
-    response <- sendRequest request
-    return $ response >>= decodeJSON
+sendPost url body =
+  send request
+    { method = "POST"
+    , requestBody = RequestBodyBS . L8.toStrict $ body
+    , requestHeaders = [(hContentType, "application/json")]
+    }
   where
-    request = buildRequest url (L8.toStrict body) "application/json"
-    decodeJSON response = case decode response :: Maybe Value of
-               Just v -> Right $ encodePretty v
-               _      -> Left $ "Response is not JSON: " <> response
+    request = parseRequest_ url
 
-buildRequest :: String -> S8.ByteString -> S8.ByteString -> Request
-buildRequest url requestBody header =
-  nakedRequest
-      { method = "POST"
-      , requestBody = RequestBodyBS requestBody
-      , requestHeaders = [(hContentType, header)]
-      }
+sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
+sendGet url = send $ parseRequest_ url
+
+
+-- | Send request and checks if response is JSON
+send :: Request -> IO (Either L8.ByteString L8.ByteString)
+send request = do
+  response <- sendRequest request
+  pure $ response >>= decodeJSON
   where
-    nakedRequest = parseRequest_ url
+    decodeJSON resp = case decode resp :: Maybe Value of
+           Just v -> Right $ encodePretty v
+           _      -> Left $ "Response is not JSON: " <> resp
+
 
 sendRequest :: Request -> IO (Either L8.ByteString L8.ByteString)
 sendRequest request = do
