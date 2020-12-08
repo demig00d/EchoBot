@@ -53,7 +53,7 @@ logWarning = log Warning
 logError msg = S8.putStrLn $ "[Error] " <> toLogStr msg
 
 -- | Logging functions that don't require type annotation
--- for message, when OverloadedStrings pragma is enabled.
+-- for message when OverloadedStrings pragma is enabled.
 logDebug', logInfo', logWarning' :: Priority -> S8.ByteString -> IO ()
 logDebug'   = log Debug
 logInfo'    = log Info
