@@ -1,9 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies    #-}
 module Bot.VKontakte where
 
 import           Bot.Types
 import           VKontakte.API
+import           VKontakte.Types
 
+
+instance Bot VKontakteEnv where
+  type BotUpdate VKontakteEnv = Update
+  getUpdates   = undefined
+  handleUpdate = undefined
 
 data VKontakteEnv =
   VKontakteEnv
@@ -12,7 +19,7 @@ data VKontakteEnv =
     , rServer  :: String
     , rKey     :: String
     , rTs      :: String
-    }
+    } deriving Show
 
 getModel :: Config -> IO (Either String (Model VKontakteEnv))
 getModel Config{cGroupId = Just groupId,..} = do
