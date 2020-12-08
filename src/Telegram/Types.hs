@@ -52,7 +52,7 @@ data Response =
 data User =
   User
     { uId           :: Int
-    , uisBot        :: Bool
+    , uIsBot        :: Bool
     , uFirstName    :: Text
     , uLastName     :: Maybe Text
     , uUsername     :: Maybe Text
