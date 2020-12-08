@@ -37,6 +37,10 @@ instance ToLogStr String where
 instance ToLogStr Text where
     {-# INLINE toLogStr #-}
     toLogStr = encodeUtf8
+instance (ToLogStr a, ToLogStr b) => ToLogStr (Either a b) where
+    {-# INLINE toLogStr #-}
+    toLogStr (Left a)  = toLogStr a
+    toLogStr (Right b) = toLogStr b
 
 
 log :: ToLogStr msg => Priority -> Priority -> msg -> IO ()
