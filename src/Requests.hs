@@ -26,7 +26,7 @@ sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
 sendGet url = send $ parseRequest_ url
 
 
--- | Send request and checks if response is JSON
+-- | Send request and check if response is JSON.
 send :: Request -> IO (Either L8.ByteString L8.ByteString)
 send request = do
   response <- sendRequest request
