@@ -23,8 +23,8 @@ startBot path = do
 
     Right cfg@Config{cPlatformName="telegram",..} ->
 
-      logInfo cLogLevel ("Configuration file has been read and decoded." :: String)
-      >> logInfo cLogLevel ("Telegram platform was selected." :: String)
+      logInfo cLogLevel "Configuration file has been read and decoded."
+      >> logInfo cLogLevel "Telegram platform was selected."
       >> Telegram.getModel cfg
       >>= either logError
            (\model -> logInfo cLogLevel "Model extracted from Config"
@@ -32,8 +32,8 @@ startBot path = do
                    >> runReaderT mainLoop model)
 
     Right cfg@Config{cPlatformName="vkontakte",..} ->
-      logInfo cLogLevel ("Configuration file has been read and decoded." :: String)
-      >> logInfo cLogLevel ("VKontakte platform was selected." :: String)
+      logInfo cLogLevel "Configuration file has been read and decoded."
+      >> logInfo cLogLevel "VKontakte platform was selected."
       >> VKontakte.getModel cfg
       >>= either logError
            (\model -> logInfo cLogLevel "Model extracted from Config"
