@@ -25,7 +25,7 @@ data TelegramEnv =
 -- | Check request environment and try to get Model from Config.
 getModel :: Config -> IO (Either L8.ByteString (Model TelegramEnv))
 getModel Config{..} = do
-  logInfo cLogLevel ("Send request with 'getMe' method to check token." :: String)
+  logInfo' cLogLevel "Send request with 'getMe' method to check token."
   response <- getMe cToken
   case response of
     Left msg  -> do
@@ -33,7 +33,7 @@ getModel Config{..} = do
       pure . Left  $ "Can't check token, request was unsuccessful."
     Right msg -> do
       logDebug cLogLevel ("\n" <> msg)
-      logInfo cLogLevel ("Bot has been found, token is valid." :: String)
+      logInfo' cLogLevel "Bot has been found, token is valid."
       pure $ Right model
     where
       model = Model
