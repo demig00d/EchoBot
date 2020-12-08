@@ -32,9 +32,9 @@ pretty indent addComma (s:ss)
   | lastP        = (init s <> "\n" <> indent <> " }")             : []
   | equals       = s                                              : pretty indent False ss
   | penultimateP = ((init $ init s) <> "\n" <> indent <> " }\n" ) : pretty (drop 5 indent) True ss
+  | lastC        = (init s <> "\n" )                              : pretty indent True ss
   | constructor  = ("\n" <> indent <> "    " <> s <> "\n")        : pretty ("     " <> indent) False ss
   | firstP       = (indent <> "{ " <> tail s)                     : pretty indent False ss
-  | lastC        = (init s <> "\n" )                              : pretty indent True ss
   | addComma     = (indent <> ", "<> s)                           : pretty indent False ss
   | otherwise    = s                                              : pretty indent False ss
   where
