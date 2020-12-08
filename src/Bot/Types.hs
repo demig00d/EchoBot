@@ -46,7 +46,7 @@ data Config =
     , cToken        :: String
     , cGroupId      :: (Maybe String)
     , cLogLevel     :: Priority
-    }
+    } deriving Show
 
 $(deriveManyJSON
     [''Config

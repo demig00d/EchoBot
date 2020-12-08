@@ -22,23 +22,27 @@ startBot path = do
     Left message -> logError message
 
     Right cfg@Config{cPlatformName="telegram",..} ->
-
-      logInfo cLogLevel "Configuration file has been read and decoded."
-      >> logInfo cLogLevel "Telegram platform was selected."
+      logInfo cLogLevel "Configuration parsed successfully."
+      >> logDebug cLogLevel (prettyShow cfg)
+      >> logInfo cLogLevel "Telegram platform has been selected."
+      >> logInfo cLogLevel "Check request environment and try to get Model from Config."
       >> Telegram.getModel cfg
       >>= either logError
-           (\model -> logInfo cLogLevel "Model extracted from Config"
+           (\model -> logInfo cLogLevel "Model has been obtained."
                    >> logDebug cLogLevel (prettyShow model)
                    >> runReaderT mainLoop model)
 
     Right cfg@Config{cPlatformName="vkontakte",..} ->
-      logInfo cLogLevel "Configuration file has been read and decoded."
-      >> logInfo cLogLevel "VKontakte platform was selected."
+      logInfo cLogLevel "Configuration parsed successfully."
+      >> logDebug cLogLevel (prettyShow cfg)
+      >> logInfo cLogLevel "VKontakte platform has been selected."
+      >> logInfo cLogLevel "Check request environment and try to get Model from Config."
       >> VKontakte.getModel cfg
       >>= either logError
-           (\model -> logInfo cLogLevel "Model extracted from Config"
+           (\model -> logInfo cLogLevel "Model has been obtained."
                    >> logDebug cLogLevel (prettyShow model)
                    >> runReaderT mainLoop model)
+
 
 mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
 mainLoop = do
