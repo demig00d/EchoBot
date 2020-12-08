@@ -3,12 +3,16 @@ module Utils
   , deriveManyJSON
   --
   , prettyShow
+  --
+  , eitherDecode
   ) where
 
 import           Data.Aeson    (camelTo2)
+import qualified Data.Aeson    as Aeson (eitherDecode)
 import qualified Data.Aeson.TH as TH (defaultOptions, deriveJSON,
                                       fieldLabelModifier, omitNothingFields)
 import           Data.Char     (isUpper, toLower)
+import           Data.String   (fromString)
 
 
 deriveJSON = TH.deriveJSON TH.defaultOptions
@@ -44,3 +48,6 @@ pretty indent addComma (s:ss)
     constructor  = isUpper $ head s
     firstP       = head s == '{'
     lastC        = last s == ','
+
+
+eitherDecode bs = either (Left . fromString) Right (Aeson.eitherDecode bs)
