@@ -3,16 +3,17 @@
 {-# LANGUAGE TypeFamilies    #-}
 module Bot.Types where
 
-import           Control.Monad (foldM)
-import           Data.Text     (Text)
+import           Control.Monad              (foldM)
+import qualified Data.ByteString.Lazy.Char8 as L8
+import           Data.Text                  (Text)
 
-import           Logging       (Priority)
-import           Utils         (deriveManyJSON)
+import           Logging                    (Priority)
+import           Utils                      (deriveManyJSON)
 
 
 class Show env => Bot env where
   type BotUpdate env
-  getUpdates    :: env -> IO (Either String [BotUpdate env])
+  getUpdates    :: Model env -> IO (Either L8.ByteString [BotUpdate env])
   handleUpdate  :: Model env -> BotUpdate env -> IO (Model env)
 
   handleUpdates :: Model env -> [BotUpdate env] -> IO (Model env)
