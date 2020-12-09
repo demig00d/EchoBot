@@ -29,6 +29,7 @@ dependencies:
 - http-client-tls
 - http-types
 - mtl
+- containers
 
 library:
   source-dirs: src

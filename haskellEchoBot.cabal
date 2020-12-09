@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8747441e8dc797dd45993c7e712c6e7597b6b7819136757f6d96a948c1f30f35
+-- hash: b67cdba4a0ae6fc733b1f54a94f8e76e6dac92f21c15aa5a9d7dbe647f34ab43
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -38,6 +38,7 @@ library
       Telegram.Types
       Utils
       VKontakte.API
+      VKontakte.Types
   other-modules:
       Paths_haskellEchoBot
   hs-source-dirs:
@@ -47,6 +48,7 @@ library
     , aeson-pretty
     , base >=4.7 && <5
     , bytestring
+    , containers
     , http-client
     , http-client-tls
     , http-types
@@ -66,6 +68,7 @@ executable haskellEchoBot-exe
     , aeson-pretty
     , base >=4.7 && <5
     , bytestring
+    , containers
     , haskellEchoBot
     , http-client
     , http-client-tls
@@ -87,6 +90,7 @@ test-suite haskellEchoBot-test
     , aeson-pretty
     , base >=4.7 && <5
     , bytestring
+    , containers
     , haskellEchoBot
     , http-client
     , http-client-tls
