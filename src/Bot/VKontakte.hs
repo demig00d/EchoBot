@@ -2,6 +2,8 @@
 {-# LANGUAGE TypeFamilies    #-}
 module Bot.VKontakte where
 
+import           Data.Map.Strict (fromList)
+
 import           Bot.Types
 import           VKontakte.API
 import           VKontakte.Types
@@ -31,7 +33,7 @@ getModel Config{cGroupId = Just groupId,..} = do
     model serverKeyTs = Model
               { mBotSettings   = cBotSettings
               , mPlatformEnv   = platformEnv serverKeyTs
-              , mUsersSettings = []
+              , mUsersSettings = fromList []
               , mLogLevel      = cLogLevel
               }
     platformEnv ServerKeyTs{..} =
