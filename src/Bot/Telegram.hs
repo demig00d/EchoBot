@@ -10,7 +10,7 @@ import           Data.Map.Strict            (fromList, insert)
 import           Data.Text                  (Text)
 import           Text.Read                  (readMaybe)
 
-import           Bot.Types                  as Bot
+import           Bot.Types
 import           Logging
 import           Telegram.API
 import qualified Telegram.API               as Telegram (copyMessage,
@@ -27,10 +27,11 @@ data TelegramEnv =
     } deriving Show
 
 
-instance Bot.Bot TelegramEnv where
+instance Bot TelegramEnv where
+  type BotIncome TelegramEnv = [Update]
   type BotUpdate TelegramEnv = Update
 
-  getUpdates model = do
+  getIncome model = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
 
     eRespBS <- Telegram.getUpdates token offset
@@ -60,6 +61,9 @@ instance Bot.Bot TelegramEnv where
         _              -> handleAction model updMsg Echo
 
     _  -> logWarning' (mLogLevel model) "Can't handle Update" >> pure model
+
+
+  extractUpdates updates _ = Just updates
 
 
 data Action
