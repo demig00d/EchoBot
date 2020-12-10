@@ -20,6 +20,13 @@ import           Telegram.Types
 import           Utils                      (eitherDecode, gshow, lookupInsert)
 
 
+data TelegramEnv =
+  TelegramEnv
+    { token  :: String
+    , offset :: Int
+    } deriving Show
+
+
 instance Bot.Bot TelegramEnv where
   type BotUpdate TelegramEnv = Update
 
