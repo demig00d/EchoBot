@@ -11,11 +11,6 @@ import           Telegram.Types
 import           Utils                      (deriveManyJSON)
 
 
-data TelegramEnv =
-  TelegramEnv
-    { token  :: String
-    , offset :: Int
-    } deriving Show
 
 data Method
   = GetUpdates
