@@ -66,14 +66,6 @@ instance Bot TelegramEnv where
   extractUpdates updates _ = Just updates
 
 
-data Action
-  = ShowStart
-  | ShowHelp
-  | ShowRepeat
-  | Echo
-  | SetRepeats Int
-
-
 handleAction model Update{..} action =
   case rMessage of
     Just message ->

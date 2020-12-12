@@ -50,8 +50,16 @@ data BotSettings =
     , bNumberOfRepeats :: Int
     } deriving Show
 
---  A Map from keys 'user_id' to 'number of repeats'.
+-- A Map from keys 'user_id' to 'number of repeats'.
 type UserSettings = Map Int Int
+
+-- Auxiliary type for update handling
+data Action
+  = ShowStart
+  | ShowHelp
+  | ShowRepeat
+  | Echo
+  | SetRepeats Int
 
 data Config =
   Config
