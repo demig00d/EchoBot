@@ -2,6 +2,8 @@ module Utils
   ( deriveJSON
   , deriveManyJSON
   --
+  , dropPrefix
+  --
   , prettyShow
   , prettyShowMap
   , gshow
@@ -26,13 +28,16 @@ import           Data.Text                  (Text)
 
 deriveJSON = TH.deriveJSON TH.defaultOptions
     { TH.fieldLabelModifier =  camelTo2 '_' . dropPrefix
-    , TH.omitNothingFields  = True}
-  where
-    dropPrefix []                 = []
-    dropPrefix (x:xs) | isUpper x = toLower x : xs
-                      | otherwise = dropPrefix xs
+    , TH.omitNothingFields  = True
+    }
 
 deriveManyJSON names = concat <$> mapM deriveJSON names
+
+
+dropPrefix :: String -> String
+dropPrefix []                 = []
+dropPrefix (x:xs) | isUpper x = toLower x : xs
+                  | otherwise = dropPrefix xs
 
 
 -- | Generalized version of show. Unlike show this function
@@ -40,10 +45,10 @@ deriveManyJSON names = concat <$> mapM deriveJSON names
 gshow :: (Show a, IsString b) => a -> b
 gshow x = fromString $ show x
 {-# INLINE gshow #-}
-{-# SPECIALIZE show :: Show a => a -> Text  #-}
-{-# SPECIALIZE show :: Show a => a -> S8.ByteString  #-}
-{-# SPECIALIZE show :: Show a => a -> L8.ByteString  #-}
-{-# SPECIALIZE show :: Show a => a -> String  #-}
+{-# SPECIALIZE gshow :: Show a => a -> Text  #-}
+{-# SPECIALIZE gshow :: Show a => a -> S8.ByteString  #-}
+{-# SPECIALIZE gshow :: Show a => a -> L8.ByteString  #-}
+{-# SPECIALIZE gshow :: Show a => a -> String  #-}
 
 -- | Pretty show for data types with fields that have a Show
 -- instance, breaks with more then one parenthesis at the end.

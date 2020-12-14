@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase       #-}
-{-# LANGUAGE RecordWildCards  #-}
 module Bot (startBot) where
 
 import           Control.Monad.IO.Class
@@ -50,12 +48,12 @@ mainLoop = do
   liftIO $ logDebug mLogLevel ("Map of user_id and repeat_number:\n" <> prettyShowMap mUsersSettings)
 
   liftIO $ logInfo mLogLevel "Receive incoming updates."
-  u <- liftIO $ getUpdates model
+  income <- liftIO $ getIncome model
 
-  case u of
-    Left msg      -> liftIO $ logWarning mLogLevel msg
-    Right updates -> do
+  case income of
+    Left msg  -> liftIO $ logWarning mLogLevel msg
+    Right incomeWithUpdates -> do
       liftIO $ logInfo mLogLevel "Bot got updates."
 
-      model' <- liftIO $ handleUpdates model updates
+      model' <- liftIO $ handleIncome model incomeWithUpdates
       runReaderT mainLoop model'

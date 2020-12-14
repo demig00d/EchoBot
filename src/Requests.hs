@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Requests where
 
@@ -18,6 +17,16 @@ sendPost url body =
     { method = "POST"
     , requestBody = RequestBodyBS . L8.toStrict $ body
     , requestHeaders = [(hContentType, "application/json")]
+    }
+  where
+    request = parseRequest_ url
+
+sendPostUrlEncoded :: String -> S8.ByteString -> IO (Either L8.ByteString L8.ByteString)
+sendPostUrlEncoded url body =
+  send request
+    { method = "POST"
+    , requestBody = RequestBodyBS body
+    , requestHeaders = [(hContentType, "application/x-www-form-urlencoded")]
     }
   where
     request = parseRequest_ url

@@ -1,6 +1,4 @@
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeFamilies      #-}
 module Bot.Telegram (getModel) where
 
@@ -27,10 +25,11 @@ data TelegramEnv =
     } deriving Show
 
 
-instance Bot.Bot TelegramEnv where
+instance Bot TelegramEnv where
+  type BotIncome TelegramEnv = [Update]
   type BotUpdate TelegramEnv = Update
 
-  getUpdates model = do
+  getIncome model = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
 
     eRespBS <- Telegram.getUpdates token offset
@@ -62,12 +61,7 @@ instance Bot.Bot TelegramEnv where
     _  -> logWarning' (mLogLevel model) "Can't handle Update" >> pure model
 
 
-data Action
-  = ShowStart
-  | ShowHelp
-  | ShowRepeat
-  | Echo
-  | SetRepeats Int
+  extractUpdates updates _ = Just updates
 
 
 handleAction model Update{..} action =

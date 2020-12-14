@@ -8,19 +8,32 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Map.Strict
 import           Data.Text                  (Text)
 
-import           Logging                    (Priority, logInfo)
+import           Logging                    (Priority, logInfo, logWarning)
 import           Utils                      (deriveManyJSON)
 
 
 class Show env => Bot env where
+  type BotIncome env
   type BotUpdate env
-  getUpdates    :: Model env -> IO (Either L8.ByteString [BotUpdate env])
-  handleUpdate  :: Model env -> BotUpdate env -> IO (Model env)
 
-  handleUpdates :: Model env -> [BotUpdate env] -> IO (Model env)
-  handleUpdates model []       = logInfo (mLogLevel model) "Updates are empty." >> pure model
-  handleUpdates model updates  = logInfo (mLogLevel model) "Handle Updates."
-                              >> foldM handleUpdate model updates
+  getIncome   :: Model env -> IO (Either L8.ByteString (BotIncome env))
+
+  handleIncome :: Model env -> BotIncome env -> IO (Model env)
+  handleIncome model income =
+    case extractUpdates income model of
+      Nothing      -> logWarning (mLogLevel model) "Can't get Updates." >> pure model
+      Just []      -> logInfo (mLogLevel model) "Updates are empty."    >> pure model
+      Just updates -> logInfo (mLogLevel model) "Handle Updates."
+              >> let model' = updateModel model income
+              in foldM handleUpdate model' updates
+
+  handleUpdate :: Model env -> BotUpdate env  -> IO (Model env)
+
+  updateModel :: Model env -> BotIncome env -> Model env
+  updateModel = const
+
+  extractUpdates :: BotIncome env -> Model env -> Maybe [BotUpdate env]
+
 
 data Model env =
   Model
@@ -37,8 +50,16 @@ data BotSettings =
     , bNumberOfRepeats :: Int
     } deriving Show
 
---  A Map from keys 'user_id' to 'number of repeats'.
+-- A Map from keys 'user_id' to 'number of repeats'.
 type UserSettings = Map Int Int
+
+-- Auxiliary type for update handling
+data Action
+  = ShowStart
+  | ShowHelp
+  | ShowRepeat
+  | Echo
+  | SetRepeats Int
 
 data Config =
   Config

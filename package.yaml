@@ -55,3 +55,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - haskellEchoBot
+
+default-extensions: 
+    - LambdaCase
+    - RecordWildCards
