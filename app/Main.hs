@@ -1,13 +1,7 @@
 module Main where
 
-import           System.Environment (getArgs)
-
-import           Bot                (startBot)
+import qualified Bot.Main as Bot
 
 
 main :: IO ()
-main = do
-  args <- getArgs
-  case args of
-    [path] -> startBot path
-    _      -> startBot "config/bot.conf"
+main = Bot.main
