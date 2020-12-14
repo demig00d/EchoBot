@@ -22,6 +22,16 @@ sendPost url body =
   where
     request = parseRequest_ url
 
+sendPostUrlEncoded :: String -> S8.ByteString -> IO (Either L8.ByteString L8.ByteString)
+sendPostUrlEncoded url body =
+  send request
+    { method = "POST"
+    , requestBody = RequestBodyBS body
+    , requestHeaders = [(hContentType, "application/x-www-form-urlencoded")]
+    }
+  where
+    request = parseRequest_ url
+
 sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
 sendGet url = send $ parseRequest_ url
 
