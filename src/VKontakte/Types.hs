@@ -14,14 +14,14 @@ newtype Sticker =
 
 data Media =
   Media
-    { mAccessKey :: Text
+    { mAccessKey :: Maybe Text
     , mId        :: Int
     , mOwnerId   :: Int
     }
 
 data Attachment =
   Attachment
-    { aType    :: String
+    { aType    :: Text
     , aSticker :: Maybe Sticker
     , aPhoto   :: Maybe Media
     , aVideo   :: Maybe Media
@@ -42,15 +42,24 @@ newtype Object =
     { oMessage :: Maybe Message
     }
 
-newtype Update =
+data Update =
   Update
     { uObject :: Object
+    , uType   :: Text
+    }
+
+data ServerKeyTs =
+  ServerKeyTs
+    { sServer :: String
+    , sKey    :: String
+    , sTs     :: String
     }
 
 data Response =
   Response
-    { rTs      :: Maybe String
-    , rUpdates :: Maybe [Update]
+    { rTs       :: Maybe String
+    , rResponse :: Maybe ServerKeyTs
+    , rUpdates  :: Maybe [Update]
     }
 
 
@@ -61,5 +70,6 @@ $(deriveManyJSON
     , ''Message
     , ''Object
     , ''Update
+    , ''ServerKeyTs
     , ''Response
     ])

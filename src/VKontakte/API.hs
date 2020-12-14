@@ -17,24 +17,18 @@ import           VKontakte.Utils
 apiUrl = "https://api.vk.com/method/"
 
 
-data ServerKeyTs =
-  ServerKeyTs
-    { server :: String
-    , key    :: String
-    , ts     :: String
-    }
-
-
 data Method
   = GetLongPollServer
       { gAccessToken :: String
       , gGroupId     :: String
       , gV           :: String
       }
-  | UpdatesGet -- Not method actually
+  | UpdatesGet -- Not a VKontakte method actually
       { uServer :: Maybe String
-      , uKey    :: Text
-      , uTs     :: Text
+      , uKey    :: String
+      , uAct    :: String
+      , uWait   :: Int
+      , uTs     :: String
       }
   | MessagesSend
       { mAccessToken :: String
@@ -52,17 +46,18 @@ data Method
 sendMethod :: Method -> IO (Either L8.ByteString L8.ByteString)
 sendMethod = \case
   m@GetLongPollServer{} ->
-      sendPostUrlEncoded
-        (apiUrl <> "groups.getLongPollServer")
-        (toUrlEncoded m)
+      send (apiUrl <> "groups.getLongPollServer") m
+
   m@UpdatesGet{uServer=Just server} ->
-      sendPostUrlEncoded
-        server
-        (toUrlEncoded m{uServer=Nothing})
+      send server m{uServer=Nothing}
+
   m@MessagesSend{} ->
-      sendPostUrlEncoded
-        (apiUrl <> "messages.Send")
-        (toUrlEncoded m)
+      send (apiUrl <> "messages.send") m
+
+  where
+    send url method =
+      let body = toUrlEncoded method
+      in sendPostUrlEncoded url body
 
 
 data Keyboard =
