@@ -43,8 +43,8 @@ data Method
       } deriving (Data, FormUrlEncoded)
 
 
-sendMethod :: Method -> IO (Either L8.ByteString L8.ByteString)
-sendMethod = \case
+sendMethod :: (S8.ByteString -> IO ()) -> Method -> IO (Either L8.ByteString L8.ByteString)
+sendMethod logger = \case
   m@GetLongPollServer{} ->
       send (apiUrl <> "groups.getLongPollServer") m
 
@@ -55,9 +55,12 @@ sendMethod = \case
       send (apiUrl <> "messages.send") m
 
   where
+    log a = logger $ "Request body: " <> a
+
     send url method =
       let body = toUrlEncoded method
-      in sendPostUrlEncoded url body
+      in log body
+      >> sendPostUrlEncoded url body
 
 
 data Keyboard =
