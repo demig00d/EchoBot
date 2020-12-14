@@ -2,6 +2,8 @@ module Utils
   ( deriveJSON
   , deriveManyJSON
   --
+  , dropPrefix
+  --
   , prettyShow
   , prettyShowMap
   , gshow
@@ -26,13 +28,16 @@ import           Data.Text                  (Text)
 
 deriveJSON = TH.deriveJSON TH.defaultOptions
     { TH.fieldLabelModifier =  camelTo2 '_' . dropPrefix
-    , TH.omitNothingFields  = True}
-  where
-    dropPrefix []                 = []
-    dropPrefix (x:xs) | isUpper x = toLower x : xs
-                      | otherwise = dropPrefix xs
+    , TH.omitNothingFields  = True
+    }
 
 deriveManyJSON names = concat <$> mapM deriveJSON names
+
+
+dropPrefix :: String -> String
+dropPrefix []                 = []
+dropPrefix (x:xs) | isUpper x = toLower x : xs
+                  | otherwise = dropPrefix xs
 
 
 -- | Generalized version of show. Unlike show this function
