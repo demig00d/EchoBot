@@ -9,7 +9,7 @@ import           Utils      (deriveManyJSON)
 
 newtype Sticker =
   Sticker
-    { sStickerID :: Int
+    { sStickerId :: Int
     }
 
 data Media =
@@ -31,7 +31,7 @@ data Attachment =
 
 data Message =
   Message
-    { mFromID      :: Int
+    { mFromId      :: Int
     , mText        :: Text
     , mRandomId    :: Int
     , mAttachments :: [Attachment]
@@ -49,8 +49,8 @@ newtype Update =
 
 data Response =
   Response
-    { rRs      :: String
-    , rUpdates :: [Update]
+    { rTs      :: Maybe String
+    , rUpdates :: Maybe [Update]
     }
 
 
