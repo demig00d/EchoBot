@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 47afae9971e82736e4fe337a0c235ce0f46fbcdae32cfb9748a0f3bfa482c13d
+-- hash: 7d69e68fc8ef4457177e1e19fee24efd0bc46c1e1d2d6ceb24e98934bbddc792
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -44,6 +44,7 @@ library
       Paths_haskellEchoBot
   hs-source-dirs:
       src
+  default-extensions: LambdaCase RecordWildCards
   build-depends:
       aeson
     , aeson-pretty
@@ -63,6 +64,7 @@ executable haskellEchoBot-exe
       Paths_haskellEchoBot
   hs-source-dirs:
       app
+  default-extensions: LambdaCase RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -85,6 +87,7 @@ test-suite haskellEchoBot-test
       Paths_haskellEchoBot
   hs-source-dirs:
       test
+  default-extensions: LambdaCase RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
