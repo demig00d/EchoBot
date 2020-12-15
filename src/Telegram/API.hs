@@ -7,10 +7,10 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Text                  (Text)
 
 import           Requests                   (sendGet, sendPost)
-import           Telegram.Types
 import           Utils                      (deriveManyJSON)
 
 
+apiUrl = "https://api.telegram.org/bot"
 
 data Method
   = GetUpdates
@@ -39,14 +39,13 @@ data InlineKeyboardButton =
     , iCallbackData :: String
     }
 
+
 $(deriveManyJSON
     [ ''Method
     , ''InlineKeyboardMarkup
     , ''InlineKeyboardButton
     ])
 
-
-apiUrl = "https://api.telegram.org/bot"
 
 mkKeyboard a = InlineKeyboardMarkup [fmap (uncurry InlineKeyboardButton) a]
 
@@ -61,20 +60,16 @@ getMe token = do
            _              -> Left bs
 
 
-getUpdates :: String -> Int -> IO (Either L8.ByteString L8.ByteString)
-getUpdates token offset = sendPost url body
+sendMethod :: String -> Method -> IO (Either L8.ByteString L8.ByteString)
+sendMethod token = \case
+  m@GetUpdates{}  ->
+    send "/getUpdates" m
+  m@SendMessage{} ->
+    send "/sendMessage" m
+  m@CopyMessage{} ->
+    send "/copyMessage" m
   where
-    url = apiUrl <> token <> "/getUpdates"
-    body = encode $ GetUpdates offset 25
-
-sendMessage :: String -> Int -> Text -> Maybe InlineKeyboardMarkup -> IO (Either L8.ByteString L8.ByteString)
-sendMessage token chatId text replyMarkup = sendPost url body
-  where
-    url  = apiUrl <> token <> "/sendMessage"
-    body = encode $ SendMessage chatId text replyMarkup
-
-copyMessage :: String -> Int -> Int -> Int -> IO (Either L8.ByteString L8.ByteString)
-copyMessage token chatId fromChatId messageId = sendPost url body
-  where
-    url  = apiUrl <> token <> "/copyMessage"
-    body = encode $ CopyMessage chatId fromChatId messageId
+    send methodName method =
+      sendPost
+        (apiUrl <> token <> methodName)
+        (encode method)

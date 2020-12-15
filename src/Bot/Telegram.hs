@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 module Bot.Telegram (getModel) where
 
-import           Control.Monad
+import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Map.Strict            (fromList, insert)
 import           Data.Text                  (Text)
@@ -10,10 +10,7 @@ import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
 import           Logging
-import           Telegram.API
-import qualified Telegram.API               as Telegram (copyMessage,
-                                                         getUpdates,
-                                                         sendMessage)
+import           Telegram.API               as Telegram
 import           Telegram.Types
 import           Utils                      (eitherDecode, gshow, lookupInsert)
 
@@ -32,7 +29,7 @@ instance Bot TelegramEnv where
   getIncome model = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
 
-    eRespBS <- Telegram.getUpdates token offset
+    eRespBS <- Telegram.sendMethod token $ GetUpdates offset 25
     logInfo' logLevel "Response recieved."
     logDebug logLevel (("\n"<>) <$> eRespBS)
     pure $ do
@@ -105,7 +102,7 @@ handleAction model Update{..} action =
     sendMessage t cid msg rm = do
       logInfo' mLogLevel "Handle command."
       logInfo' mLogLevel "Send request with 'sendMessage' method to reply to user's command."
-      eResponse <- Telegram.sendMessage t cid msg rm
+      eResponse <- Telegram.sendMethod t $ SendMessage cid msg rm
       case eResponse of
         Left msg       -> logWarning mLogLevel msg
         Right response -> logInfo' mLogLevel "Reply sended."
@@ -119,7 +116,7 @@ handleAction model Update{..} action =
                num -> gshow num <> " times"
       logInfo' mLogLevel ("Send request with 'copyMessage' method " <> nTimes n <> " to echo user's message.")
       replicateM_ n $ do
-            eResponse <- Telegram.copyMessage t cid fcid mid
+            eResponse <- Telegram.sendMethod t $ CopyMessage cid fcid mid
             case eResponse of
               Left msg       -> logWarning mLogLevel msg
               Right response -> logInfo' mLogLevel "Message has been echoed."
