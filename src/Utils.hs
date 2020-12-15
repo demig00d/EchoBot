@@ -13,11 +13,9 @@ module Utils
   , lookupInsert
   ) where
 
-import           Data.Aeson                 (FromJSON, camelTo2)
+import           Data.Aeson                 hiding (eitherDecode)
 import qualified Data.Aeson                 as Aeson (eitherDecode)
-import qualified Data.Aeson.TH              as TH (defaultOptions, deriveJSON,
-                                                   fieldLabelModifier,
-                                                   omitNothingFields)
+import qualified Data.Aeson.TH              as TH (deriveJSON)
 import           Data.ByteString.Char8      as S8 (ByteString)
 import           Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Char                  (isUpper, toLower)
@@ -26,9 +24,10 @@ import           Data.String                (IsString, fromString)
 import           Data.Text                  (Text)
 
 
-deriveJSON = TH.deriveJSON TH.defaultOptions
-    { TH.fieldLabelModifier =  camelTo2 '_' . dropPrefix
-    , TH.omitNothingFields  = True
+deriveJSON = TH.deriveJSON defaultOptions
+    { fieldLabelModifier =  camelTo2 '_' . dropPrefix
+    , omitNothingFields  = True
+    , sumEncoding = UntaggedValue
     }
 
 deriveManyJSON names = concat <$> mapM deriveJSON names
