@@ -42,7 +42,9 @@ instance Bot VKontakteEnv where
           , uWait = 25
           , uTs = ts mPlatformEnv
           }
+    logInfo' mLogLevel "Send request to VKontakte server and wait for response."
     eResponse <- VKontakte.sendMethod (logDebug mLogLevel) method
+    logInfo' mLogLevel "Bot got response."
     logDebug mLogLevel eResponse
     pure $ eResponse >>= eitherDecode
 
@@ -51,7 +53,9 @@ instance Bot VKontakteEnv where
       Just msg -> handleMessage model msg
       _        ->
         if uType update == "message_reply"
-           then pure model
+           then do
+             logInfo' (mLogLevel model) "No messages from user."
+             pure model
            else do
              logWarning' (mLogLevel model) "There is no message in Update."
              pure model
@@ -73,17 +77,23 @@ handleMessage model@Model{..} Message{..} =
     "/3" -> setRepeatsNumber 3 model
     "/4" -> setRepeatsNumber 4 model
     "/5" -> setRepeatsNumber 5 model
-    "/help"   -> sendMethod 1 messagesSend{mMessage=Just bHelpMessage}
-    "/repeat" -> sendMethod 1 messagesSend{mMessage=Just repeatMessage
-                                          ,mKeyboard=Just $ encode numKeyboard}
-    _         -> let attachment =
-                      fmap toAttachmentFormat mAttachments
-                      & filter (/=Nothing)
-                      & sequence
-                      <&> T.intercalate ","
-                 in sendMethod n messagesSend{mMessage=Just mText
-                                             ,mStickerId=getStickerId mAttachments
-                                             ,mAttachment=attachment}
+    "/help"   -> sendMethod messagesSend{mMessage=Just bHelpMessage}
+    "/repeat" -> sendMethod messagesSend{mMessage=Just repeatMessage
+                                        ,mKeyboard=Just $ encode numKeyboard}
+    _         -> do
+      let attachment =
+              fmap toAttachmentFormat mAttachments
+              & filter (/=Nothing)
+              & sequence
+             <&> T.intercalate ","
+          nTimes = \case
+               1   -> gshow 1 <> " time"
+               num -> gshow num <> " times"
+
+      logInfo' mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes n <> ".")
+      sendEcho n messagesSend{mMessage=Just mText
+                                   ,mStickerId=getStickerId mAttachments
+                                   ,mAttachment=attachment}
   where
     BotSettings{..} = mBotSettings
     VKontakteEnv{..} = mPlatformEnv
@@ -106,8 +116,18 @@ handleMessage model@Model{..} Message{..} =
       >> pure model{mUsersSettings=insert mFromId number mUsersSettings}
 
 
-    sendMethod :: Int -> Method -> IO (Model VKontakteEnv)
-    sendMethod num m = do
+    sendMethod :: Method -> IO (Model VKontakteEnv)
+    sendMethod  m = do
+      result <- VKontakte.sendMethod (logDebug mLogLevel) m
+      case result of
+        Left msg    -> logWarning mLogLevel msg
+        Right resp  -> logInfo' mLogLevel "Reply to command has been sent."
+                    >> logDebug mLogLevel ("\n" <> resp)
+
+      pure model{mUsersSettings=mUsersSettings'}
+
+    sendEcho :: Int -> Method -> IO (Model VKontakteEnv)
+    sendEcho num m = do
       replicateM_ num $ do
        result <- VKontakte.sendMethod (logDebug mLogLevel) m
        case result of
@@ -116,7 +136,6 @@ handleMessage model@Model{..} Message{..} =
                    >> logDebug mLogLevel ("\n" <> resp)
 
       pure model{mUsersSettings=mUsersSettings'}
-
 
     messagesSend =
       MessagesSend
@@ -144,7 +163,7 @@ toAttachmentFormat Attachment{..} =
 
 getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
 getModel Config{cGroupId = Just groupId,..} = do
-    rawResponse <- VKontakte.sendMethod (logDebug cLogLevel)$
+    rawResponse <- VKontakte.sendMethod (logDebug cLogLevel) $
                       GetLongPollServer
                           { gAccessToken = cToken
                           , gGroupId = groupId

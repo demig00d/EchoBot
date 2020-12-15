@@ -47,13 +47,11 @@ mainLoop = do
   model@Model{..} <- ask
   liftIO $ logDebug mLogLevel ("Map of user_id and repeat_number:\n" <> prettyShowMap mUsersSettings)
 
-  liftIO $ logInfo mLogLevel "Receive incoming updates."
+  liftIO $ logInfo mLogLevel "Receiving incoming updates."
   income <- liftIO $ getIncome model
 
   case income of
     Left msg  -> liftIO $ logWarning mLogLevel msg
     Right incomeWithUpdates -> do
-      liftIO $ logInfo mLogLevel "Bot got updates."
-
       model' <- liftIO $ handleIncome model incomeWithUpdates
       runReaderT mainLoop model'

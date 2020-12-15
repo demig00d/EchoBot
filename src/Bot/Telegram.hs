@@ -100,7 +100,7 @@ handleAction model Update{..} action =
     repeatMessage n = "Current number of repeats = " <> gshow n <> ".\n" <> bRepeatMessage
 
     sendMessage t cid msg rm = do
-      logInfo' mLogLevel "Handle command."
+      logInfo' mLogLevel "Handling command."
       logInfo' mLogLevel "Send request with 'sendMessage' method to reply to user's command."
       eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ SendMessage cid msg rm
       case eResponse of
@@ -109,7 +109,7 @@ handleAction model Update{..} action =
                        >> logDebug mLogLevel ("\n" <> response)
 
     copyMessageN n t cid fcid mid = do
-      logInfo' mLogLevel "Handle message."
+      logInfo' mLogLevel "Handling message."
       logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow n <> ".")
       let nTimes = \case
                1   -> gshow 1 <> " time"

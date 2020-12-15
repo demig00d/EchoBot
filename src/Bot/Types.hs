@@ -23,7 +23,7 @@ class Show env => Bot env where
     case extractUpdates income model of
       Nothing      -> logWarning (mLogLevel model) "Can't get Updates." >> pure model
       Just []      -> logInfo (mLogLevel model) "Updates are empty."    >> pure model
-      Just updates -> logInfo (mLogLevel model) "Handle Updates."
+      Just updates -> logInfo (mLogLevel model) "Handling updates."
               >> let model' = updateModel model income
               in foldM handleUpdate model' updates
 
