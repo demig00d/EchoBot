@@ -29,7 +29,7 @@ instance Bot TelegramEnv where
   getIncome model = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
 
-    eRespBS <- Telegram.sendMethod token $ GetUpdates offset 25
+    eRespBS <- Telegram.sendMethod (logDebug logLevel) token $ GetUpdates offset 25
     logInfo' logLevel "Response recieved."
     logDebug logLevel (("\n"<>) <$> eRespBS)
     pure $ do
@@ -102,7 +102,7 @@ handleAction model Update{..} action =
     sendMessage t cid msg rm = do
       logInfo' mLogLevel "Handle command."
       logInfo' mLogLevel "Send request with 'sendMessage' method to reply to user's command."
-      eResponse <- Telegram.sendMethod t $ SendMessage cid msg rm
+      eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ SendMessage cid msg rm
       case eResponse of
         Left msg       -> logWarning mLogLevel msg
         Right response -> logInfo' mLogLevel "Reply sended."
@@ -116,7 +116,7 @@ handleAction model Update{..} action =
                num -> gshow num <> " times"
       logInfo' mLogLevel ("Send request with 'copyMessage' method " <> nTimes n <> " to echo user's message.")
       replicateM_ n $ do
-            eResponse <- Telegram.sendMethod t $ CopyMessage cid fcid mid
+            eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ CopyMessage cid fcid mid
             case eResponse of
               Left msg       -> logWarning mLogLevel msg
               Right response -> logInfo' mLogLevel "Message has been echoed."

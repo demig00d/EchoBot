@@ -60,8 +60,8 @@ getMe token = do
            _              -> Left bs
 
 
-sendMethod :: String -> Method -> IO (Either L8.ByteString L8.ByteString)
-sendMethod token = \case
+sendMethod :: (L8.ByteString -> IO ()) -> String -> Method -> IO (Either L8.ByteString L8.ByteString)
+sendMethod logger token = \case
   m@GetUpdates{}  ->
     send "/getUpdates" m
   m@SendMessage{} ->
@@ -69,7 +69,11 @@ sendMethod token = \case
   m@CopyMessage{} ->
     send "/copyMessage" m
   where
+    log a = logger $ "Request body: " <> a
+
     send methodName method =
-      sendPost
-        (apiUrl <> token <> methodName)
-        (encode method)
+      let body = encode method
+      in log body
+      >> sendPost
+         (apiUrl <> token <> methodName)
+          body
