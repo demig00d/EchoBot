@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bf05424e9fdc521da5e90b0382abad95abc42c17f5625b9351711a65651cf095
+-- hash: f8b80e76ef3d9549556dbbf8979d9fedccd9c21edc1943b42f355fcfb0a7cc14
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -56,6 +56,7 @@ library
     , http-client-tls
     , http-types
     , mtl
+    , template-haskell
     , text
   default-language: Haskell2010
 
@@ -78,6 +79,7 @@ executable haskellEchoBot-exe
     , http-client-tls
     , http-types
     , mtl
+    , template-haskell
     , text
   default-language: Haskell2010
 
@@ -101,5 +103,6 @@ test-suite haskellEchoBot-test
     , http-client-tls
     , http-types
     , mtl
+    , template-haskell
     , text
   default-language: Haskell2010
