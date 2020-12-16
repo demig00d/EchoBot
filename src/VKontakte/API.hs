@@ -26,7 +26,7 @@ data Method
       , gV           :: String
       }
   | UpdatesGet -- Not a VKontakte method actually
-      { uServer :: Maybe String
+      { uServer :: String
       , uKey    :: String
       , uAct    :: String
       , uWait   :: Int
@@ -50,9 +50,9 @@ sendMethod logger = \case
   m@GetLongPollServer{} ->
       send (apiUrl <> "groups.getLongPollServer") m
 
-  m@UpdatesGet{uServer=Just server} ->
-      send server m{uServer=Nothing}
-
+  m@UpdatesGet{uServer=uServer} ->
+      send uServer m{uServer=""} -- Omit 'server' field in request body
+                                 -- because its value is already contained inside URL
   m@MessagesSend{} ->
       send (apiUrl <> "messages.send") m
 

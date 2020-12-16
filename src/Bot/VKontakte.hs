@@ -39,7 +39,7 @@ instance Bot VKontakteEnv where
 
   getIncome Model{..} = do
     let method = UpdatesGet
-          { uServer = Just $ server mPlatformEnv
+          { uServer = server mPlatformEnv
           , uKey = key mPlatformEnv
           , uAct = "a_check"
           , uWait = 25
