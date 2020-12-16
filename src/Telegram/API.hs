@@ -5,11 +5,13 @@ module Telegram.API where
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Text                  (Text)
+import           Prelude                    hiding (log)
 
 import           Requests                   (sendGet, sendPost)
 import           Utils                      (deriveManyJSON)
 
 
+apiUrl :: String
 apiUrl = "https://api.telegram.org/bot"
 
 data Method
@@ -47,6 +49,7 @@ $(deriveManyJSON
     ])
 
 
+mkKeyboard :: [(String, String)] -> InlineKeyboardMarkup
 mkKeyboard a = InlineKeyboardMarkup [fmap (uncurry InlineKeyboardButton) a]
 
 

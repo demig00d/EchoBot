@@ -14,10 +14,13 @@ import           Data.Text                  as T (Text, intercalate)
 import           Bot.Types
 import           Logging
 import           Utils
-import           VKontakte.API              as VKontakte
+import           VKontakte.API              (Keyboard (..), Method (..),
+                                             mkButton)
+import qualified VKontakte.API              as VKontakte (sendMethod)
 import           VKontakte.Types
 
 
+apiVersion :: String
 apiVersion = "5.126"
 
 data VKontakteEnv =
@@ -44,9 +47,12 @@ instance Bot VKontakteEnv where
           }
     logInfo' mLogLevel "Send request to VKontakte server and wait for response."
     eResponse <- VKontakte.sendMethod (logDebug mLogLevel) method
-    logInfo' mLogLevel "Bot got response."
-    logDebug mLogLevel eResponse
-    pure $ eResponse >>= eitherDecode
+    case eResponse of
+      Left msg       -> pure $ Left msg
+      Right response -> do
+        logInfo' mLogLevel "Bot got response."
+        logDebug mLogLevel response
+        pure $ eitherDecode response
 
   handleUpdate model update =
     case oMessage $ uObject update of
@@ -70,6 +76,7 @@ instance Bot VKontakteEnv where
   extractUpdates income _ = rUpdates income
 
 
+handleMessage :: Model VKontakteEnv -> Message -> IO (Model VKontakteEnv)
 handleMessage model@Model{..} Message{..} =
   case mText of
     "/1" -> setRepeatsNumber 1 model
@@ -86,11 +93,12 @@ handleMessage model@Model{..} Message{..} =
               & filter (/=Nothing)
               & sequence
              <&> T.intercalate ","
+          nTimes :: Int -> String
           nTimes = \case
-               1   -> gshow 1 <> " time"
+               1   -> gshow (1 :: Int) <> " time"
                num -> gshow num <> " times"
 
-      logInfo' mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes n <> ".")
+      logInfo mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes n <> ".")
       sendEcho n messagesSend{mMessage=Just mText
                                    ,mStickerId=getStickerId mAttachments
                                    ,mAttachment=attachment}
@@ -106,14 +114,14 @@ handleMessage model@Model{..} Message{..} =
     numKeyboard =
       Keyboard
         { kOneTime = True
-        , kButtons = [fmap mkButton (gshow <$> [1..5])]
+        , kButtons = [fmap mkButton (gshow <$> ([1..5] :: [Int]))]
         }
 
     (n, mUsersSettings') = lookupInsert mFromId bNumberOfRepeats mUsersSettings
 
-    setRepeatsNumber number model =
+    setRepeatsNumber number model' =
       logInfo' mLogLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow n <> ".")
-      >> pure model{mUsersSettings=insert mFromId number mUsersSettings}
+      >> pure model'{mUsersSettings=insert mFromId number mUsersSettings}
 
 
     sendMethod :: Method -> IO (Model VKontakteEnv)
@@ -162,6 +170,7 @@ toAttachmentFormat Attachment{..} =
 
 
 getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
+getModel Config{cGroupId = Nothing} = pure $ Left "group_id is required for VKontakte."
 getModel Config{cGroupId = Just groupId,..} = do
     rawResponse <- VKontakte.sendMethod (logDebug cLogLevel) $
                       GetLongPollServer
@@ -190,3 +199,4 @@ getModel Config{cGroupId = Just groupId,..} = do
         , key     = sKey
         , ts      = sTs
         }
+

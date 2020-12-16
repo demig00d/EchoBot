@@ -57,8 +57,8 @@ sendRequest request = do
   where
     selectHttpException :: HttpException -> Maybe L8.ByteString
     selectHttpException = \case
-      HttpExceptionRequest request content ->
-          Just . L8.pack $ show request <> show content
+      HttpExceptionRequest failedRequest content ->
+          Just . L8.pack $ show failedRequest <> show content
 
       InvalidUrlException url reason ->
           Just . L8.pack $ "A URL '"<> url <> "': " <> reason <> "."

@@ -1,10 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 module VKontakte.Types where
 
-import           Data.Aeson hiding (Object, object)
-import           Data.Text  (Text)
+import           Data.Text (Text)
 
-import           Utils      (deriveManyJSON)
+import           Utils     (deriveManyJSON)
 
 
 newtype Sticker =

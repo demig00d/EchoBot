@@ -22,14 +22,17 @@ import           Data.Char                  (isUpper, toLower)
 import           Data.Map.Strict            as Map (Map, insert, lookup, toList)
 import           Data.String                (IsString, fromString)
 import           Data.Text                  (Text)
+import           Language.Haskell.TH
 
 
+deriveJSON :: Name -> Q [Dec]
 deriveJSON = TH.deriveJSON defaultOptions
     { fieldLabelModifier =  camelTo2 '_' . dropPrefix
     , omitNothingFields  = True
     , sumEncoding = UntaggedValue
     }
 
+deriveManyJSON :: Traversable t => t Name -> Q [Dec]
 deriveManyJSON names = concat <$> mapM deriveJSON names
 
 
@@ -56,6 +59,7 @@ prettyShow str = unwords $ (pretty "" False) . words $ show str
 
 -- | Helper for prettyShow.
 pretty :: String -> Bool -> [String] -> [String]
+pretty _ _ [] = []
 pretty indent addComma (s:ss)
   | lastP        = (init s <> "\n" <> indent <> " }")             : []
   | equals       = s                                              : pretty indent False ss
@@ -80,6 +84,7 @@ pretty indent addComma (s:ss)
 -- [Debug] Map of user_id and repeat_number:
 --                (100000000,       4      )
 --                (100000001,       2      )
+prettyShowMap :: (Show k, Show v) => Map k v -> String
 prettyShowMap m =
   mconcat $ (\(k, v) -> "               " <> "(" <> show k <> ","
                      <> "       " <> show v

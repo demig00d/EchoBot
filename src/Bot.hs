@@ -3,8 +3,6 @@ module Bot (startBot) where
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import qualified Data.ByteString.Char8  as S8
-import           Data.Map.Strict
 
 import           Bot.Telegram           as Telegram
 import           Bot.Types
@@ -41,6 +39,9 @@ startBot path = do
            (\model -> logInfo cLogLevel "Model has been obtained."
                    >> logDebug cLogLevel (prettyShow model)
                    >> runReaderT mainLoop model)
+
+    _             ->  logError "Unrecognized platform name"
+
 
 mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
 mainLoop = do

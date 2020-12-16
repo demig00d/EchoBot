@@ -16,7 +16,6 @@ import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, toStrict)
 import           Data.Data
 import           Data.Text                  (Text)
 import           Data.Text.Encoding         (encodeUtf8)
-import           Data.Typeable              (cast)
 
 import           Utils                      (dropPrefix)
 
@@ -24,6 +23,7 @@ import           Utils                      (dropPrefix)
 data Options =
   Options { fieldLabelModifier :: String -> String }
 
+defaultOptions :: Options
 defaultOptions = Options id
 
 type FieldName  = String
@@ -38,7 +38,7 @@ class FormUrlEncoded a where
 
 
 toUrlEncodedWithOptions :: Data a => Options -> a -> S8.ByteString
-toUrlEncodedWithOptions o a = helper . getPairs $ a
+toUrlEncodedWithOptions o d = helper . getPairs $ d
   where
     helper :: [(FieldName, FieldValue)] -> S8.ByteString
     helper []  = ""
@@ -64,10 +64,10 @@ getPairs = zipOmit <$> getNames <*> getFields
 
 
 zipOmit :: [a] -> [S8.ByteString] -> [(a, S8.ByteString)]
-zipOmit []     _bs     = []
-zipOmit _as    []      = []
-zipOmit (a:as) ("":bs) = zipOmit as bs
-zipOmit (a:as) (b:bs)  = (a, b) : zipOmit as bs
+zipOmit []     _bs      = []
+zipOmit _as    []       = []
+zipOmit (_a:as) ("":bs) = zipOmit as bs
+zipOmit (a:as) (b:bs)   = (a, b) : zipOmit as bs
 
 
 toByteString :: (Data a) => a -> S8.ByteString

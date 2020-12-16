@@ -54,6 +54,7 @@ logDebug   = log Debug
 logInfo    = log Info
 logWarning = log Warning
 
+logError :: ToLogStr msg => msg -> IO ()
 logError msg = S8.putStrLn $ "[Error] " <> toLogStr msg
 
 -- | Logging functions that don't require type annotation
@@ -63,4 +64,5 @@ logDebug'   = log Debug
 logInfo'    = log Info
 logWarning' = log Warning
 
+logError' :: S8.ByteString -> IO ()
 logError' msg = S8.putStrLn $ "[Error] " <> msg

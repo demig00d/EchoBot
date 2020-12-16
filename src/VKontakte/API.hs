@@ -8,12 +8,14 @@ import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Data
 import           Data.Text                  (Text)
+import           Prelude                    hiding (log)
 
 import           Requests                   (sendPostUrlEncoded)
 import           Utils                      (deriveManyJSON)
 import           VKontakte.Utils
 
 
+apiUrl :: String
 apiUrl = "https://api.vk.com/method/"
 
 
@@ -95,6 +97,7 @@ $(deriveManyJSON
     ])
 
 
+mkButton :: Text -> Button
 mkButton b =
   Button $ Action
     { aType = "text"

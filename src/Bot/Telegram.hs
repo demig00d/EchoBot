@@ -5,7 +5,6 @@ module Bot.Telegram (getModel) where
 import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Map.Strict            (fromList, insert)
-import           Data.Text                  (Text)
 import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
@@ -61,6 +60,7 @@ instance Bot TelegramEnv where
   extractUpdates updates _ = Just updates
 
 
+handleAction :: Model TelegramEnv -> Update -> Action -> IO (Model TelegramEnv)
 handleAction model Update{..} action =
   case rMessage of
     Just message ->
@@ -76,7 +76,7 @@ handleAction model Update{..} action =
           mPlatformEnv' = mPlatformEnv{offset = rUpdateId + 1}
           model' = model{mUsersSettings=mUsersSettings', mPlatformEnv=mPlatformEnv'}
 
-          numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) [1..5]
+          numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
 
       in case action of
         ShowStart    -> sendMessage token chatId startMessage Nothing                 >> pure model'
@@ -85,7 +85,7 @@ handleAction model Update{..} action =
         Echo         -> copyMessageN n token chatId fromChatId messageId              >> pure model'
     _           ->
       case rCallbackQuery of
-        Just (CallbackQuery cData cFrom) -> case action of
+        Just (CallbackQuery _cData cFrom) -> case action of
           SetRepeats n ->
             logInfo' mLogLevel ("Number of repeats for user: " <> gshow (uId cFrom) <> " changed to " <> gshow n <> ".")
             >> pure model{ mUsersSettings=insert (uId cFrom) n mUsersSettings
@@ -104,17 +104,18 @@ handleAction model Update{..} action =
       logInfo' mLogLevel "Send request with 'sendMessage' method to reply to user's command."
       eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ SendMessage cid msg rm
       case eResponse of
-        Left msg       -> logWarning mLogLevel msg
+        Left m       -> logWarning mLogLevel m
         Right response -> logInfo' mLogLevel "Reply sended."
                        >> logDebug mLogLevel ("\n" <> response)
 
     copyMessageN n t cid fcid mid = do
       logInfo' mLogLevel "Handling message."
       logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow n <> ".")
-      let nTimes = \case
-               1   -> gshow 1 <> " time"
+      let nTimes :: Int -> String
+          nTimes = \case
+               1   -> gshow (1 :: Int) <> " time"
                num -> gshow num <> " times"
-      logInfo' mLogLevel ("Send request with 'copyMessage' method " <> nTimes n <> " to echo user's message.")
+      logInfo mLogLevel ("Send request with 'copyMessage' method " <> nTimes n <> " to echo user's message.")
       replicateM_ n $ do
             eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ CopyMessage cid fcid mid
             case eResponse of

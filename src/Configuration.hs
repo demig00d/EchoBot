@@ -7,10 +7,9 @@ import           Control.Exception     (tryJust)
 import           Data.Aeson            (eitherDecodeStrict)
 import qualified Data.ByteString.Char8 as S8 (ByteString, readFile)
 import           Data.Char             (toLower)
-import           Data.Text             (Text)
 import           System.IO.Error
 
-import           Bot.Types             (BotSettings (..), Config (..))
+import           Bot.Types             (Config (..))
 
 
 getConfig :: FilePath -> IO (Either String Config)
@@ -36,5 +35,5 @@ verifyConfig config = case toLower <$> cPlatformName config of
   name        -> Left $ "Can't recognize bot platform '" <> name <> "'."
   where
     verifyVKontakte = \case
-      Just groupId -> Right config{cPlatformName = "vkontakte"}
+      Just _groupId -> Right config{cPlatformName = "vkontakte"}
       _            -> Left "group_id is required for VKontakte."
