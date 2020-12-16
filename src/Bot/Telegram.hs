@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 module Bot.Telegram (getModel) where
@@ -41,18 +42,18 @@ instance Bot TelegramEnv where
 
 
   handleUpdate model = \case
-    updCbq@Update{rCallbackQuery = Just (CallbackQuery cdata _cFrom), ..} ->
+    Update{rCallbackQuery = Just (CallbackQuery cdata cFrom), rUpdateId} ->
       case readMaybe cdata :: Maybe Int of
-        Just n -> handleAction model updCbq (SetRepeats n)
+        Just n -> setRepeatNumber model (uId cFrom) rUpdateId n
         _      -> logWarning (mLogLevel model) ("Can't parse callbackquery: " <> cdata)
                >> pure model
 
-    updMsg@Update{rMessage = Just message} ->
+    Update{rMessage = Just message, rUpdateId} ->
       case mText message of
-        Just "/start"  -> handleAction model updMsg ShowStart
-        Just "/help"   -> handleAction model updMsg ShowHelp
-        Just "/repeat" -> handleAction model updMsg ShowRepeat
-        _              -> handleAction model updMsg Echo
+        Just "/start"  -> handleMessage model message rUpdateId ShowStart
+        Just "/help"   -> handleMessage model message rUpdateId ShowHelp
+        Just "/repeat" -> handleMessage model message rUpdateId ShowRepeat
+        _              -> handleMessage model message rUpdateId Echo
 
     _  -> logWarning' (mLogLevel model) "Can't handle Update" >> pure model
 
@@ -60,44 +61,45 @@ instance Bot TelegramEnv where
   extractUpdates updates _ = Just updates
 
 
-handleAction :: Model TelegramEnv -> Update -> Action -> IO (Model TelegramEnv)
-handleAction model Update{..} action =
-  case rMessage of
-    Just message ->
-      let chatId     = cId $ mChat message
-          fromChatId = uId $ mFrom message
-          messageId  = mMessageId  message
-          firstName = uFirstName $ mFrom message
-
-          startMessage = "Hi, " <> firstName <> "! " <> bHelpMessage
-
-          (n, mUsersSettings') = lookupInsert fromChatId bNumberOfRepeats mUsersSettings
-
-          mPlatformEnv' = mPlatformEnv{offset = rUpdateId + 1}
-          model' = model{mUsersSettings=mUsersSettings', mPlatformEnv=mPlatformEnv'}
-
-          numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
-
-      in case action of
-        ShowStart    -> sendMessage token chatId startMessage Nothing                 >> pure model'
-        ShowHelp     -> sendMessage token chatId bHelpMessage Nothing                 >> pure model'
-        ShowRepeat   -> sendMessage token chatId (repeatMessage n) (Just numKeyboard) >> pure model'
-        Echo         -> copyMessageN n token chatId fromChatId messageId              >> pure model'
-    _           ->
-      case rCallbackQuery of
-        Just (CallbackQuery _cData cFrom) -> case action of
-          SetRepeats n ->
-            logInfo' mLogLevel ("Number of repeats for user: " <> gshow (uId cFrom) <> " changed to " <> gshow n <> ".")
-            >> pure model{ mUsersSettings=insert (uId cFrom) n mUsersSettings
-                         , mPlatformEnv=mPlatformEnv{offset=rUpdateId + 1}
-                         }
-        _         -> logWarning' mLogLevel "Unrecognized update." >> pure model
+setRepeatNumber :: Model TelegramEnv -> Int -> Int -> Int -> IO (Model TelegramEnv)
+setRepeatNumber model userId updateId n =
+  logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+  >> pure model{ mUsersSettings = insert userId n usersSettings
+               , mPlatformEnv = platformEnv{offset=updateId + 1}
+               }
   where
+    usersSettings = mUsersSettings model
+    platformEnv= mPlatformEnv model
+    logLevel = mLogLevel model
+
+
+handleMessage :: Model TelegramEnv -> Message -> Int -> Action -> IO (Model TelegramEnv)
+handleMessage model message updateId =
+  \case
+      ShowStart    -> sendMessage token chatId startMessage Nothing             >> pure model'
+      ShowHelp     -> sendMessage token chatId bHelpMessage Nothing             >> pure model'
+      ShowRepeat   -> sendMessage token chatId repeatMessage (Just numKeyboard) >> pure model'
+      Echo         -> copyMessage token chatId fromChatId messageId             >> pure model'
+  where
+    chatId     = cId $ mChat message
+    fromChatId = uId $ mFrom message
+    messageId  = mMessageId  message
+    firstName = uFirstName $ mFrom message
+
+    startMessage = "Hi, " <> firstName <> "! " <> bHelpMessage
+
+    (echoNumber, mUsersSettings') = lookupInsert fromChatId bNumberOfRepeats mUsersSettings
+
+    model' = model{mUsersSettings=mUsersSettings'
+                  ,mPlatformEnv=mPlatformEnv{offset = updateId + 1}}
+
+    numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
+
     Model{..} = model
     TelegramEnv{..} = mPlatformEnv
     BotSettings{..} = mBotSettings
 
-    repeatMessage n = "Current number of repeats = " <> gshow n <> ".\n" <> bRepeatMessage
+    repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage
 
     sendMessage t cid msg rm = do
       logInfo' mLogLevel "Handling command."
@@ -108,15 +110,15 @@ handleAction model Update{..} action =
         Right response -> logInfo' mLogLevel "Reply sended."
                        >> logDebug mLogLevel ("\n" <> response)
 
-    copyMessageN n t cid fcid mid = do
+    copyMessage t cid fcid mid = do
       logInfo' mLogLevel "Handling message."
-      logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow n <> ".")
+      logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
       let nTimes :: Int -> String
           nTimes = \case
                1   -> gshow (1 :: Int) <> " time"
                num -> gshow num <> " times"
-      logInfo mLogLevel ("Send request with 'copyMessage' method " <> nTimes n <> " to echo user's message.")
-      replicateM_ n $ do
+      logInfo mLogLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
+      replicateM_ echoNumber $ do
             eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ CopyMessage cid fcid mid
             case eResponse of
               Left msg       -> logWarning mLogLevel msg
@@ -144,3 +146,4 @@ getModel Config{..} = do
                 , mUsersSettings = fromList []
                 , mLogLevel      = cLogLevel
                 }
+
