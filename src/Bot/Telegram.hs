@@ -73,7 +73,7 @@ setRepeatNumber model userId updateId n =
     logLevel = mLogLevel model
 
 
-handleMessage :: Model TelegramEnv -> Message -> Int -> Action -> IO (Model TelegramEnv)
+handleMessage :: Model TelegramEnv -> Message -> Int -> MessageAction -> IO (Model TelegramEnv)
 handleMessage model message updateId =
   \case
       ShowStart    -> sendMessage token chatId startMessage Nothing             >> pure model'

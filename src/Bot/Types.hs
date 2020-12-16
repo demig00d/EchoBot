@@ -54,12 +54,11 @@ data BotSettings =
 type UserSettings = Map Int Int
 
 -- Auxiliary type for update handling
-data Action
+data MessageAction
   = ShowStart
   | ShowHelp
   | ShowRepeat
   | Echo
-  | SetRepeats Int
 
 data Config =
   Config
