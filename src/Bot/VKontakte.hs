@@ -93,18 +93,18 @@ handleMessage model@Model{..} Message{..} =
               & filter (/=Nothing)
               & sequence
              <&> T.intercalate ","
-      logInfo mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes n <> ".")
-      sendEcho n messagesSend{mMessage=Just mText
-                                   ,mStickerId=getStickerId mAttachments
-                                   ,mAttachment=attachment}
+      logInfo mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes echoNumber <> ".")
+      sendEcho echoNumber messagesSend{mMessage=Just mText
+                                      ,mStickerId=getStickerId mAttachments
+                                      ,mAttachment=attachment}
   where
-    BotSettings{..} = mBotSettings
+    BotSettings{..}  = mBotSettings
     VKontakteEnv{..} = mPlatformEnv
 
     getStickerId [] = Nothing
     getStickerId l  = sStickerId <$> (aSticker $ head l)
 
-    repeatMessage = "Current number of repeats = " <> gshow n <> ".\n" <> bRepeatMessage
+    repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage
 
     numKeyboard =
       Keyboard
@@ -112,31 +112,33 @@ handleMessage model@Model{..} Message{..} =
         , kButtons = [fmap mkButton (gshow <$> ([1..5] :: [Int]))]
         }
 
-    (n, mUsersSettings') = lookupInsert mFromId bNumberOfRepeats mUsersSettings
+    (echoNumber, mUsersSettings') = lookupInsert mFromId bNumberOfRepeats mUsersSettings
 
     setRepeatsNumber number model' =
-      logInfo' mLogLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow n <> ".")
+      logInfo' mLogLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow echoNumber <> ".")
       >> pure model'{mUsersSettings=insert mFromId number mUsersSettings}
 
 
     sendMethod :: Method -> IO (Model VKontakteEnv)
     sendMethod  m = do
+      logInfo' mLogLevel "Send request with 'messages.send' method to reply to user's command."
       result <- VKontakte.sendMethod (logDebug mLogLevel) m
       case result of
-        Left msg    -> logWarning mLogLevel msg
-        Right resp  -> logInfo' mLogLevel "Reply to command has been sent."
-                    >> logDebug mLogLevel ("\n" <> resp)
+        Left msg   -> logWarning mLogLevel msg
+        Right resp -> logInfo' mLogLevel "Reply to command has been sent."
+                   >> logDebug mLogLevel ("\n" <> resp)
 
       pure model{mUsersSettings=mUsersSettings'}
 
     sendEcho :: Int -> Method -> IO (Model VKontakteEnv)
     sendEcho num m = do
+      logInfo mLogLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ num $ do
-       result <- VKontakte.sendMethod (logDebug mLogLevel) m
-       case result of
-          Left msg    -> logWarning mLogLevel msg
-          Right resp  -> logInfo' mLogLevel "Message has been echoed."
-                   >> logDebug mLogLevel ("\n" <> resp)
+        result <- VKontakte.sendMethod (logDebug mLogLevel) m
+        case result of
+           Left msg   -> logWarning mLogLevel msg
+           Right resp -> logInfo' mLogLevel "Message has been echoed."
+                      >> logDebug mLogLevel ("\n" <> resp)
 
       pure model{mUsersSettings=mUsersSettings'}
 
@@ -151,7 +153,7 @@ handleMessage model@Model{..} Message{..} =
         , mStickerId = Nothing
         , mKeyboard = Nothing
         , mV = apiVersion
-         }
+        }
 
 
 toAttachmentFormat :: Attachment -> Maybe Text
