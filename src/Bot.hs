@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Bot (startBot) where
 
+import           Control.Concurrent
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 
@@ -53,6 +54,10 @@ mainLoop = do
 
   case income of
     Left msg  -> liftIO $ logWarning mLogLevel msg
+              >> logInfo mLogLevel "Waiting 10 seconds before retrying."
+              >> threadDelay (1000000 * 10)
+              >> runReaderT mainLoop model
+
     Right incomeWithUpdates -> do
       model' <- liftIO $ handleIncome model incomeWithUpdates
       runReaderT mainLoop model'
