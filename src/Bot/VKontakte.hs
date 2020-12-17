@@ -93,11 +93,6 @@ handleMessage model@Model{..} Message{..} =
               & filter (/=Nothing)
               & sequence
              <&> T.intercalate ","
-          nTimes :: Int -> String
-          nTimes = \case
-               1   -> gshow (1 :: Int) <> " time"
-               num -> gshow num <> " times"
-
       logInfo mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes n <> ".")
       sendEcho n messagesSend{mMessage=Just mText
                                    ,mStickerId=getStickerId mAttachments

@@ -12,7 +12,8 @@ import           Bot.Types                  as Bot
 import           Logging
 import           Telegram.API               as Telegram
 import           Telegram.Types
-import           Utils                      (eitherDecode, gshow, lookupInsert)
+import           Utils                      (eitherDecode, gshow, lookupInsert,
+                                             nTimes)
 
 
 data TelegramEnv =
@@ -113,10 +114,6 @@ handleMessage model message updateId =
     copyMessage t cid fcid mid = do
       logInfo' mLogLevel "Handling message."
       logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
-      let nTimes :: Int -> String
-          nTimes = \case
-               1   -> gshow (1 :: Int) <> " time"
-               num -> gshow num <> " times"
       logInfo mLogLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ echoNumber $ do
             eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ CopyMessage cid fcid mid

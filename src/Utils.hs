@@ -11,6 +11,8 @@ module Utils
   , eitherDecode
   --
   , lookupInsert
+  --
+  , nTimes
   ) where
 
 import           Data.Aeson                 hiding (eitherDecode)
@@ -102,3 +104,9 @@ eitherDecode bs = either (Left . fromString) Right (Aeson.eitherDecode bs)
 lookupInsert :: Ord k => k -> a -> Map k a -> (a, Map k a)
 lookupInsert key defaultValue dict =
   maybe (defaultValue, Map.insert key defaultValue dict) (\v -> (v, dict)) (Map.lookup key dict)
+
+
+nTimes :: Int -> String
+nTimes = \case
+     1   -> gshow (1 :: Int) <> " time"
+     num -> gshow num <> " times"
