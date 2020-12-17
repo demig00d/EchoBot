@@ -72,11 +72,10 @@ sendMethod logger token = \case
   m@CopyMessage{} ->
     send "/copyMessage" m
   where
-    log a = logger $ "Request body: " <> a
+    log u b = logger $ "\n    URL: " <> L8.pack u <> "\n    Request body: " <> b
 
     send methodName method =
-      let body = encode method
-      in log body
-      >> sendPost
-         (apiUrl <> token <> methodName)
-          body
+      let url =  (apiUrl <> token <> methodName)
+          body = encode method
+      in log url body
+      >> sendPost url body

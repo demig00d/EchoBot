@@ -57,11 +57,11 @@ sendMethod logger = \case
       send (apiUrl <> "messages.send") m
 
   where
-    log a = logger $ "Request body: " <> a
+    log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
 
     send url method =
       let body = toUrlEncoded method
-      in log body
+      in log url body
       >> sendPostUrlEncoded url body
 
 
