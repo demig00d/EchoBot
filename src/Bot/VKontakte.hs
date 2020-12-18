@@ -39,19 +39,19 @@ instance Bot VKontakteEnv where
 
   getIncome Model{..} = do
     let method = UpdatesGet
-          { uServer = server mPlatformEnv
-          , uKey = key mPlatformEnv
+          { uServer = server platformEnv
+          , uKey = key platformEnv
           , uAct = "a_check"
           , uWait = 25
-          , uTs = ts mPlatformEnv
+          , uTs = ts platformEnv
           }
-    logInfo' mLogLevel "Send request to VKontakte server and wait for response."
-    eResponse <- VKontakte.sendMethod (logDebug mLogLevel) method
+    logInfo' logLevel "Send request to VKontakte server and wait for response."
+    eResponse <- VKontakte.sendMethod (logDebug logLevel) method
     case eResponse of
       Left msg       -> pure $ Left msg
       Right response -> do
-        logInfo' mLogLevel "Bot got response."
-        logDebug mLogLevel response
+        logInfo' logLevel "Bot got response."
+        logDebug logLevel response
         pure $ eitherDecode response
 
   handleUpdate model update =
@@ -60,18 +60,18 @@ instance Bot VKontakteEnv where
       _        ->
         if uType update == "message_reply"
            then do
-             logInfo' (mLogLevel model) "No messages from user."
+             logInfo' (logLevel model) "No messages from user."
              pure model
            else do
-             logWarning' (mLogLevel model) "There is no message in Update."
+             logWarning' (logLevel model) "There is no message in Update."
              pure model
 
-  updateModel model@Model{mPlatformEnv=mPlatformEnv} response =
+  updateModel model@Model{platformEnv=platformEnv} response =
     case rTs response of
       Nothing        -> model
       Just timestamp ->
-        let mPlatformEnv' = mPlatformEnv{ts = timestamp}
-        in model{mPlatformEnv=mPlatformEnv'}
+        let platformEnv' = platformEnv{ts = timestamp}
+        in model{platformEnv=platformEnv'}
 
   extractUpdates income _ = rUpdates income
 
@@ -93,13 +93,13 @@ handleMessage model@Model{..} Message{..} =
               & filter (/=Nothing)
               & sequence
              <&> T.intercalate ","
-      logInfo mLogLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes echoNumber <> ".")
+      logInfo logLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes echoNumber <> ".")
       sendEcho echoNumber messagesSend{mMessage=Just mText
                                       ,mStickerId=getStickerId mAttachments
                                       ,mAttachment=attachment}
   where
-    BotSettings{..}  = mBotSettings
-    VKontakteEnv{..} = mPlatformEnv
+    BotSettings{..}  = botSettings
+    VKontakteEnv{..} = platformEnv
 
     getStickerId [] = Nothing
     getStickerId l  = sStickerId <$> aSticker (head l)
@@ -112,35 +112,35 @@ handleMessage model@Model{..} Message{..} =
         , kButtons = [fmap mkButton (gshow <$> ([1..5] :: [Int]))]
         }
 
-    (echoNumber, mUsersSettings') = lookupInsert mFromId bNumberOfRepeats mUsersSettings
+    (echoNumber, usersSettings') = lookupInsert mFromId bNumberOfRepeats usersSettings
 
     setRepeatsNumber number model' =
-      logInfo' mLogLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow echoNumber <> ".")
-      >> pure model'{mUsersSettings=insert mFromId number mUsersSettings}
+      logInfo' logLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow echoNumber <> ".")
+      >> pure model'{usersSettings=insert mFromId number usersSettings}
 
 
     sendMethod :: Method -> IO (Model VKontakteEnv)
     sendMethod  m = do
-      logInfo' mLogLevel "Send request with 'messages.send' method to reply to user's command."
-      result <- VKontakte.sendMethod (logDebug mLogLevel) m
+      logInfo' logLevel "Send request with 'messages.send' method to reply to user's command."
+      result <- VKontakte.sendMethod (logDebug logLevel) m
       case result of
-        Left msg   -> logWarning mLogLevel msg
-        Right resp -> logInfo' mLogLevel "Reply to command has been sent."
-                   >> logDebug mLogLevel ("\n" <> resp)
+        Left msg   -> logWarning logLevel msg
+        Right resp -> logInfo' logLevel "Reply to command has been sent."
+                   >> logDebug logLevel ("\n" <> resp)
 
-      pure model{mUsersSettings=mUsersSettings'}
+      pure model{usersSettings=usersSettings'}
 
     sendEcho :: Int -> Method -> IO (Model VKontakteEnv)
     sendEcho num m = do
-      logInfo mLogLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
+      logInfo logLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ num $ do
-        result <- VKontakte.sendMethod (logDebug mLogLevel) m
+        result <- VKontakte.sendMethod (logDebug logLevel) m
         case result of
-           Left msg   -> logWarning mLogLevel msg
-           Right resp -> logInfo' mLogLevel "Message has been echoed."
-                      >> logDebug mLogLevel ("\n" <> resp)
+           Left msg   -> logWarning logLevel msg
+           Right resp -> logInfo' logLevel "Message has been echoed."
+                      >> logDebug logLevel ("\n" <> resp)
 
-      pure model{mUsersSettings=mUsersSettings'}
+      pure model{usersSettings=usersSettings'}
 
     messagesSend =
       MessagesSend
@@ -183,10 +183,10 @@ getModel Config{cGroupId = Just groupId,..} = do
       pure $ model skt
   where
     model serverKeyTs = Model
-              { mBotSettings   = cBotSettings
-              , mPlatformEnv   = platformEnv serverKeyTs
-              , mUsersSettings = empty
-              , mLogLevel      = cLogLevel
+              { botSettings   = cBotSettings
+              , platformEnv   = platformEnv serverKeyTs
+              , usersSettings = empty
+              , logLevel      = cLogLevel
               }
     platformEnv ServerKeyTs{..} =
       VKontakteEnv

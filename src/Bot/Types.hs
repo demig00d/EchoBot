@@ -21,9 +21,9 @@ class Show env => Bot env where
   handleIncome :: Model env -> BotIncome env -> IO (Model env)
   handleIncome model income =
     case extractUpdates income model of
-      Nothing      -> logWarning (mLogLevel model) "Can't get Updates." >> pure model
-      Just []      -> logInfo (mLogLevel model) "Updates are empty."    >> pure model
-      Just updates -> logInfo (mLogLevel model) "Handling updates."
+      Nothing      -> logWarning (logLevel model) "Can't get Updates." >> pure model
+      Just []      -> logInfo (logLevel model) "Updates are empty."    >> pure model
+      Just updates -> logInfo (logLevel model) "Handling updates."
               >> let model' = updateModel model income
               in foldM handleUpdate model' updates
 
@@ -37,10 +37,10 @@ class Show env => Bot env where
 
 data Model env =
   Model
-    { mBotSettings   :: BotSettings
-    , mPlatformEnv   :: env
-    , mUsersSettings :: UserSettings
-    , mLogLevel      :: Priority
+    { botSettings   :: BotSettings
+    , platformEnv   :: env
+    , usersSettings :: UserSettings
+    , logLevel      :: Priority
     } deriving Show
 
 data BotSettings =

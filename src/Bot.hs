@@ -47,14 +47,14 @@ startBot path = do
 mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
 mainLoop = do
   model@Model{..} <- ask
-  liftIO $ logDebug mLogLevel ("Map of user_id and repeat_number:\n" <> prettyShowMap mUsersSettings)
+  liftIO $ logDebug logLevel ("Map of user_id and repeat_number:\n" <> prettyShowMap usersSettings)
 
-  liftIO $ logInfo mLogLevel "Receiving incoming updates."
+  liftIO $ logInfo logLevel "Receiving incoming updates."
   income <- liftIO $ getIncome model
 
   case income of
-    Left msg  -> liftIO $ logWarning mLogLevel msg
-              >> logInfo mLogLevel "Waiting 10 seconds before retrying."
+    Left msg  -> liftIO $ logWarning logLevel msg
+              >> logInfo logLevel "Waiting 10 seconds before retrying."
               >> threadDelay (1000000 * 10)
               >> runReaderT mainLoop model
 

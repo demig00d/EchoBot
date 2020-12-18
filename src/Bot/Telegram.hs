@@ -27,7 +27,7 @@ instance Bot TelegramEnv where
   type BotIncome TelegramEnv = [Update]
   type BotUpdate TelegramEnv = Update
 
-  getIncome model = do
+  getIncome Model{logLevel,platformEnv=TelegramEnv{..}} = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
 
     eRespBS <- Telegram.sendMethod (logDebug logLevel) token $ GetUpdates offset 25
@@ -37,16 +37,13 @@ instance Bot TelegramEnv where
       respBS <- eRespBS
       resp   <- eitherDecode respBS
       maybe (Left "Failed on getting Update.") Right (rResult resp)
-      where
-        TelegramEnv{..} = mPlatformEnv model
-        logLevel = mLogLevel model
 
 
   handleUpdate model = \case
     Update{rCallbackQuery = Just (CallbackQuery cdata cFrom), rUpdateId} ->
       case readMaybe cdata :: Maybe Int of
         Just n -> setRepeatNumber model (uId cFrom) rUpdateId n
-        _      -> logWarning (mLogLevel model) ("Can't parse callbackquery: " <> cdata)
+        _      -> logWarning (logLevel model) ("Can't parse callbackquery: " <> cdata)
                >> pure model
 
     Update{rMessage = Just message, rUpdateId} ->
@@ -56,23 +53,18 @@ instance Bot TelegramEnv where
         Just "/repeat" -> handleMessage model message rUpdateId ShowRepeat
         _              -> handleMessage model message rUpdateId Echo
 
-    _  -> logWarning' (mLogLevel model) "Can't handle Update" >> pure model
+    _  -> logWarning' (logLevel model) "Can't handle Update" >> pure model
 
 
   extractUpdates updates _ = Just updates
 
 
 setRepeatNumber :: Model TelegramEnv -> Int -> Int -> Int -> IO (Model TelegramEnv)
-setRepeatNumber model userId updateId n =
+setRepeatNumber model@Model{usersSettings, platformEnv, logLevel} userId updateId n =
   logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
-  >> pure model{ mUsersSettings = insert userId n usersSettings
-               , mPlatformEnv = platformEnv{offset=updateId + 1}
+  >> pure model{ usersSettings = insert userId n usersSettings
+               , platformEnv = platformEnv{offset=updateId + 1}
                }
-  where
-    usersSettings = mUsersSettings model
-    platformEnv= mPlatformEnv model
-    logLevel = mLogLevel model
-
 
 handleMessage :: Model TelegramEnv -> Message -> Int -> MessageAction -> IO (Model TelegramEnv)
 handleMessage model message updateId =
@@ -89,38 +81,38 @@ handleMessage model message updateId =
 
     startMessage = "Hi, " <> firstName <> "! " <> bHelpMessage
 
-    (echoNumber, mUsersSettings') = lookupInsert fromChatId bNumberOfRepeats mUsersSettings
+    (echoNumber, usersSettings') = lookupInsert fromChatId bNumberOfRepeats usersSettings
 
-    model' = model{mUsersSettings=mUsersSettings'
-                  ,mPlatformEnv=mPlatformEnv{offset = updateId + 1}}
+    model' = model{usersSettings=usersSettings'
+                  ,platformEnv=platformEnv{offset = updateId + 1}}
 
     numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
 
     Model{..} = model
-    TelegramEnv{..} = mPlatformEnv
-    BotSettings{..} = mBotSettings
+    TelegramEnv{..} = platformEnv
+    BotSettings{..} = botSettings
 
     repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage
 
     sendMessage t cid msg rm = do
-      logInfo' mLogLevel "Handling command."
-      logInfo' mLogLevel "Send request with 'sendMessage' method to reply to user's command."
-      eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ SendMessage cid msg rm
+      logInfo' logLevel "Handling command."
+      logInfo' logLevel "Send request with 'sendMessage' method to reply to user's command."
+      eResponse <- Telegram.sendMethod (logDebug logLevel) t $ SendMessage cid msg rm
       case eResponse of
-        Left m       -> logWarning mLogLevel m
-        Right response -> logInfo' mLogLevel "Reply sended."
-                       >> logDebug mLogLevel ("\n" <> response)
+        Left m       -> logWarning logLevel m
+        Right response -> logInfo' logLevel "Reply sended."
+                       >> logDebug logLevel ("\n" <> response)
 
     copyMessage t cid fcid mid = do
-      logInfo' mLogLevel "Handling message."
-      logInfo' mLogLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
-      logInfo mLogLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
+      logInfo' logLevel "Handling message."
+      logInfo' logLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
+      logInfo logLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ echoNumber $ do
-            eResponse <- Telegram.sendMethod (logDebug mLogLevel) t $ CopyMessage cid fcid mid
+            eResponse <- Telegram.sendMethod (logDebug logLevel) t $ CopyMessage cid fcid mid
             case eResponse of
-              Left msg       -> logWarning mLogLevel msg
-              Right response -> logInfo' mLogLevel "Message has been echoed."
-                             >> logDebug mLogLevel ("\n" <> response)
+              Left msg       -> logWarning logLevel msg
+              Right response -> logInfo' logLevel "Message has been echoed."
+                             >> logDebug logLevel ("\n" <> response)
 
 
 -- | Check request environment and try to get Model from Config.
@@ -138,9 +130,9 @@ getModel Config{..} = do
       pure $ Right model
     where
       model = Model
-                { mBotSettings   = cBotSettings
-                , mPlatformEnv   = TelegramEnv cToken 0
-                , mUsersSettings = empty
-                , mLogLevel      = cLogLevel
+                { botSettings   = cBotSettings
+                , platformEnv   = TelegramEnv cToken 0
+                , usersSettings = empty
+                , logLevel      = cLogLevel
                 }
 
