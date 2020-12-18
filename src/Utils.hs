@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Utils
   ( deriveJSON
   , deriveManyJSON
@@ -57,24 +58,24 @@ gshow x = fromString $ show x
 -- | Pretty show for data types with fields that have a Show
 -- instance, breaks with more then one parenthesis at the end.
 prettyShow :: Show a => a -> String
-prettyShow str = unwords $ (pretty "" False) . words $ show str
+prettyShow str = unwords $ pretty "" False . words $ show str
 
 -- | Helper for prettyShow.
 pretty :: String -> Bool -> [String] -> [String]
 pretty _ _ [] = []
 pretty indent addComma (s:ss)
-  | lastP        = (init s <> "\n" <> indent <> " }")             : []
-  | equals       = s                                              : pretty indent False ss
-  | penultimateP = ((init $ init s) <> "\n" <> indent <> " }\n" ) : pretty (drop 5 indent) True ss
-  | lastC        = (init s <> "\n" )                              : pretty indent True ss
-  | constructor  = ("\n" <> indent <> "    " <> s <> "\n")        : pretty ("     " <> indent) False ss
-  | firstP       = (indent <> "{ " <> tail s)                     : pretty indent False ss
-  | addComma     = (indent <> ", "<> s)                           : pretty indent False ss
-  | otherwise    = s                                              : pretty indent False ss
+  | lastP        = [init s <> "\n" <> indent <> " }"]
+  | equals       = s                                         : pretty indent False ss
+  | penultimateP = init (init s) <> "\n" <> indent <> " }\n" : pretty (drop 5 indent) True ss
+  | lastC        = (init s <> "\n" )                         : pretty indent True ss
+  | constructor  = ("\n" <> indent <> "    " <> s <> "\n")   : pretty ("     " <> indent) False ss
+  | firstP       = (indent <> "{ " <> tail s)                : pretty indent False ss
+  | addComma     = (indent <> ", "<> s)                      : pretty indent False ss
+  | otherwise    = s                                         : pretty indent False ss
   where
     lastP        = last s == '}'
     equals       = s == "="
-    penultimateP = (last $ init s) == '}'
+    penultimateP = last (init s) == '}'
     constructor  = isUpper $ head s
     firstP       = head s == '{'
     lastC        = last s == ','
@@ -90,7 +91,7 @@ prettyShowMap :: (Show k, Show v) => Map k v -> String
 prettyShowMap m =
   mconcat $ (\(k, v) -> "               " <> "(" <> show k <> ","
                      <> "       " <> show v
-                     <> "      " <> ")\n") <$> (Map.toList m)
+                     <> "      " <> ")\n") <$> Map.toList m
 
 
 -- | Generalized version of eitherDecode from Data.Aeson.
@@ -103,7 +104,7 @@ eitherDecode bs = either (Left . fromString) Right (Aeson.eitherDecode bs)
 -- | Lookup value in Map or insert defailt value if it does not exist yet.
 lookupInsert :: Ord k => k -> a -> Map k a -> (a, Map k a)
 lookupInsert key defaultValue dict =
-  maybe (defaultValue, Map.insert key defaultValue dict) (\v -> (v, dict)) (Map.lookup key dict)
+  maybe (defaultValue, Map.insert key defaultValue dict) (, dict) (Map.lookup key dict)
 
 
 nTimes :: Int -> String

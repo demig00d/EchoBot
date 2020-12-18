@@ -5,7 +5,7 @@ module Bot.Telegram (getModel) where
 
 import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Map.Strict            (fromList, insert)
+import           Data.Map.Strict            (empty, insert)
 import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
@@ -140,7 +140,7 @@ getModel Config{..} = do
       model = Model
                 { mBotSettings   = cBotSettings
                 , mPlatformEnv   = TelegramEnv cToken 0
-                , mUsersSettings = fromList []
+                , mUsersSettings = empty
                 , mLogLevel      = cLogLevel
                 }
 

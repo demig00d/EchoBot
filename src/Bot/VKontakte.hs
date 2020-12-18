@@ -8,7 +8,7 @@ import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
 import           Data.Functor               ((<&>))
-import           Data.Map.Strict            (fromList, insert)
+import           Data.Map.Strict            (empty, insert)
 import           Data.Text                  as T (Text, intercalate)
 
 import           Bot.Types
@@ -102,7 +102,7 @@ handleMessage model@Model{..} Message{..} =
     VKontakteEnv{..} = mPlatformEnv
 
     getStickerId [] = Nothing
-    getStickerId l  = sStickerId <$> (aSticker $ head l)
+    getStickerId l  = sStickerId <$> aSticker (head l)
 
     repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage
 
@@ -185,7 +185,7 @@ getModel Config{cGroupId = Just groupId,..} = do
     model serverKeyTs = Model
               { mBotSettings   = cBotSettings
               , mPlatformEnv   = platformEnv serverKeyTs
-              , mUsersSettings = fromList []
+              , mUsersSettings = empty
               , mLogLevel      = cLogLevel
               }
     platformEnv ServerKeyTs{..} =

@@ -75,7 +75,7 @@ sendMethod logger token = \case
     log u b = logger $ "\n    URL: " <> L8.pack u <> "\n    Request body: " <> b
 
     send methodName method =
-      let url =  (apiUrl <> token <> methodName)
+      let url  = apiUrl <> token <> methodName
           body = encode method
       in log url body
       >> sendPost url body

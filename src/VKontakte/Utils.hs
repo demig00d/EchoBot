@@ -20,7 +20,7 @@ import           Data.Text.Encoding         (encodeUtf8)
 import           Utils                      (dropPrefix)
 
 
-data Options =
+newtype Options =
   Options { fieldLabelModifier :: String -> String }
 
 defaultOptions :: Options

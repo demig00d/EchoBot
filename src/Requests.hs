@@ -52,8 +52,7 @@ sendRequest request = do
   -- requests to the same server use the same connection.
   manager  <- newManager tlsManagerSettings
 
-  response <- tryJust selectHttpException (responseBody <$> httpLbs request manager)
-  return $ response
+  tryJust selectHttpException (responseBody <$> httpLbs request manager)
   where
     selectHttpException :: HttpException -> Maybe L8.ByteString
     selectHttpException = \case

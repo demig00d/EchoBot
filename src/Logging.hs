@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 module Logging where
 
+import           Control.Monad              (when)
 import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Text                  (Text)
@@ -45,9 +46,9 @@ instance (ToLogStr a, ToLogStr b) => ToLogStr (Either a b) where
 
 log :: ToLogStr msg => Priority -> Priority -> msg -> IO ()
 log msgLvl appLvl msg =
-  if msgLvl >= appLvl
-     then S8.putStrLn $ "[" <> (S8.pack $ show msgLvl) <> "] " <> toLogStr msg
-     else return ()
+  when (msgLvl >= appLvl)
+    $ S8.putStrLn
+    $ "[" <> S8.pack (show msgLvl) <> "] " <> toLogStr msg
 
 logDebug, logInfo, logWarning :: ToLogStr msg => Priority -> msg -> IO ()
 logDebug   = log Debug

@@ -65,7 +65,7 @@ data Config =
     { cBotSettings  :: BotSettings
     , cPlatformName :: String
     , cToken        :: String
-    , cGroupId      :: (Maybe String)
+    , cGroupId      :: Maybe String
     , cLogLevel     :: Priority
     } deriving Show
 
