@@ -2,34 +2,46 @@
 module Requests where
 
 import           Control.Exception          (tryJust)
-import           Data.Aeson                 (Value, decode)
+import           Data.Aeson                 (ToJSON, Value, decode, encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
-import qualified Data.ByteString.Char8      as S8 (ByteString)
+import qualified Data.ByteString.Char8      as S8 (ByteString, pack)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, toStrict)
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS    (tlsManagerSettings)
 import           Network.HTTP.Types         (hContentType)
+import           Prelude                    hiding (log)
+
+import           VKontakte.Utils
 
 
-sendPost :: String -> L8.ByteString -> IO (Either L8.ByteString L8.ByteString)
-sendPost url body =
+sendPostJSON :: ToJSON b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
+sendPostJSON logger url body = do
+  log url bodyEncoded
   send request
     { method = "POST"
-    , requestBody = RequestBodyBS . L8.toStrict $ body
+    , requestBody = RequestBodyBS bodyEncoded
     , requestHeaders = [(hContentType, "application/json")]
     }
   where
-    request = parseRequest_ url
+    log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
 
-sendPostUrlEncoded :: String -> S8.ByteString -> IO (Either L8.ByteString L8.ByteString)
-sendPostUrlEncoded url body =
+    request = parseRequest_ url
+    bodyEncoded = L8.toStrict $ encode body
+
+sendPostUrlEncoded :: FormUrlEncoded b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
+sendPostUrlEncoded logger url body = do
+  log url bodyEncoded
   send request
     { method = "POST"
-    , requestBody = RequestBodyBS body
+    , requestBody = RequestBodyBS bodyEncoded
     , requestHeaders = [(hContentType, "application/x-www-form-urlencoded")]
     }
   where
+    log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
+
     request = parseRequest_ url
+    bodyEncoded = toUrlEncoded body
+
 
 sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
 sendGet url = send $ parseRequest_ url

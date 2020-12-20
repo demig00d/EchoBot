@@ -2,12 +2,12 @@
 {-# LANGUAGE TemplateHaskell   #-}
 module Telegram.API where
 
-import           Data.Aeson                 (encode)
+import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Text                  (Text)
 import           Prelude                    hiding (log)
 
-import           Requests                   (sendGet, sendPost)
+import           Requests                   (sendGet, sendPostJSON)
 import           Utils                      (deriveManyJSON)
 
 
@@ -63,7 +63,7 @@ getMe token = do
            _              -> Left bs
 
 
-sendMethod :: (L8.ByteString -> IO ()) -> String -> Method -> IO (Either L8.ByteString L8.ByteString)
+sendMethod :: (S8.ByteString -> IO ()) -> String -> Method -> IO (Either L8.ByteString L8.ByteString)
 sendMethod logger token = \case
   m@GetUpdates{}  ->
     send "/getUpdates" m
@@ -72,10 +72,6 @@ sendMethod logger token = \case
   m@CopyMessage{} ->
     send "/copyMessage" m
   where
-    log u b = logger $ "\n    URL: " <> L8.pack u <> "\n    Request body: " <> b
-
-    send methodName method =
+    send methodName body =
       let url  = apiUrl <> token <> methodName
-          body = encode method
-      in log url body
-      >> sendPost url body
+      in sendPostJSON logger url body

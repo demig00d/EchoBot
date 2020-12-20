@@ -52,17 +52,11 @@ sendMethod logger = \case
 
   m@UpdatesGet{uServer=uServer} ->
       send uServer m{uServer=""} -- Omit 'server' field in request body
-                                 -- because its value is already contained inside URL
+                                               -- because its value is already contained inside URL
   m@MessagesSend{} ->
       send (apiUrl <> "messages.send") m
-
   where
-    log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
-
-    send url method =
-      let body = toUrlEncoded method
-      in log url body
-      >> sendPostUrlEncoded url body
+    send url body = sendPostUrlEncoded logger url body
 
 
 data Keyboard =
