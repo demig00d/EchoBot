@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f8b80e76ef3d9549556dbbf8979d9fedccd9c21edc1943b42f355fcfb0a7cc14
+-- hash: 2d43a92725487db885278899dec2219f9484c457f81cecbec6427bdb0aba72f6
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
       Bot.Types
       Bot.VKontakte
       Configuration
+      Data.UrlEncoded
       Logging
       Requests
       Telegram.API
@@ -40,7 +41,6 @@ library
       Utils
       VKontakte.API
       VKontakte.Types
-      VKontakte.Utils
   other-modules:
       Paths_haskellEchoBot
   hs-source-dirs:
