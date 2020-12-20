@@ -1,6 +1,7 @@
 module Configuration
   ( getConfig
   , Config(..)
+  , parseConfig
   ) where
 
 import           Control.Exception     (tryJust)
@@ -13,12 +14,13 @@ import           Bot.Types             (Config (..))
 
 
 getConfig :: FilePath -> IO (Either String Config)
-getConfig path = do
-  rawConfig <- readConfig path
-  pure $ rawConfig >>= eitherDecodeStrict >>= verifyConfig
+getConfig path = parseConfig <$> readConfigFile path
 
-readConfig :: FilePath -> IO (Either String S8.ByteString)
-readConfig path =
+parseConfig :: Either String S8.ByteString -> Either String Config
+parseConfig rawConfig = rawConfig >>= eitherDecodeStrict >>= verifyConfig
+
+readConfigFile :: FilePath -> IO (Either String S8.ByteString)
+readConfigFile path =
     tryJust selectIOError (S8.readFile path)
   where
     selectIOError :: IOError -> Maybe String
