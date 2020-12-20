@@ -8,7 +8,7 @@ import qualified Data.ByteString.Char8      as S8 (ByteString, pack)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, toStrict)
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS    (tlsManagerSettings)
-import           Network.HTTP.Types         (hContentType)
+import           Network.HTTP.Types         (hContentType, urlEncode)
 import           Prelude                    hiding (log)
 
 import           VKontakte.Utils
@@ -40,7 +40,7 @@ sendPostUrlEncoded logger url body = do
     log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
 
     request = parseRequest_ url
-    bodyEncoded = toUrlEncoded body
+    bodyEncoded = urlEncode False $ toUrlEncoded body
 
 
 sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
