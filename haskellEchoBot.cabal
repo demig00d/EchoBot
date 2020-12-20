@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2d43a92725487db885278899dec2219f9484c457f81cecbec6427bdb0aba72f6
+-- hash: 1cb1462117866b5c2472753f37a345103ae7d600a7cbcdf94a0c241b16423801
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -52,6 +52,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , hspec
     , http-client
     , http-client-tls
     , http-types
@@ -75,6 +76,7 @@ executable haskellEchoBot-exe
     , bytestring
     , containers
     , haskellEchoBot
+    , hspec
     , http-client
     , http-client-tls
     , http-types
@@ -87,6 +89,7 @@ test-suite haskellEchoBot-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ConfigurationSpec
       Paths_haskellEchoBot
   hs-source-dirs:
       test
@@ -99,6 +102,7 @@ test-suite haskellEchoBot-test
     , bytestring
     , containers
     , haskellEchoBot
+    , hspec
     , http-client
     , http-client-tls
     , http-types
