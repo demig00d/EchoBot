@@ -11,7 +11,7 @@ import           Network.HTTP.Client.TLS    (tlsManagerSettings)
 import           Network.HTTP.Types         (hContentType, urlEncode)
 import           Prelude                    hiding (log)
 
-import           VKontakte.Utils
+import           Data.UrlEncoded
 
 
 sendPostJSON :: ToJSON b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
@@ -28,7 +28,7 @@ sendPostJSON logger url body = do
     request = parseRequest_ url
     bodyEncoded = L8.toStrict $ encode body
 
-sendPostUrlEncoded :: FormUrlEncoded b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
+sendPostUrlEncoded :: ToUrlEncoded b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
 sendPostUrlEncoded logger url body = do
   log url bodyEncoded
   send request

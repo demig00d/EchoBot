@@ -2,8 +2,8 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
-module VKontakte.Utils
-  ( FormUrlEncoded
+module Data.UrlEncoded
+  ( ToUrlEncoded
   , toUrlEncoded
   , toUrlEncodedWithOptions
   , defaultOptions
@@ -30,7 +30,7 @@ type FieldName  = String
 type FieldValue = S8.ByteString
 
 
-class FormUrlEncoded a where
+class ToUrlEncoded a where
   toUrlEncoded :: a -> S8.ByteString
   default toUrlEncoded :: Data a => a -> S8.ByteString
   toUrlEncoded a = toUrlEncodedWithOptions

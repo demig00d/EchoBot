@@ -10,9 +10,9 @@ import           Data.Data
 import           Data.Text                  (Text)
 import           Prelude                    hiding (log)
 
+import           Data.UrlEncoded            (ToUrlEncoded)
 import           Requests                   (sendPostUrlEncoded)
 import           Utils                      (deriveManyJSON)
-import           VKontakte.Utils
 
 
 apiUrl :: String
@@ -42,7 +42,7 @@ data Method
       , mStickerId   :: Maybe Int
       , mKeyboard    :: Maybe L8.ByteString
       , mV           :: String
-      } deriving (Data, FormUrlEncoded)
+      } deriving (Data, ToUrlEncoded)
 
 
 sendMethod :: (S8.ByteString -> IO ()) -> Method -> IO (Either L8.ByteString L8.ByteString)
