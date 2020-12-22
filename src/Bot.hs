@@ -19,29 +19,23 @@ startBot path = do
   case config of
     Left message -> logError message
 
-    Right cfg@Config{cPlatformName="telegram",..} ->
+    Right cfg@Config{..} ->
       logInfo cLogLevel "Configuration parsed successfully."
       >> logDebug cLogLevel (prettyShow cfg)
-      >> logInfo cLogLevel "Telegram platform has been selected."
-      >> logInfo cLogLevel "Check request environment and try to get Model from Config."
-      >> Telegram.getModel cfg
-      >>= either logError
-           (\model -> logInfo cLogLevel "Model has been obtained."
-                   >> logDebug cLogLevel (prettyShow model)
-                   >> runReaderT mainLoop model)
+      >> logInfo  cLogLevel "Check request environment and try to get Model from Config."
+      >> case cPlatformName of
+        "telegram"  -> Telegram.getModel cfg
+                    >>= either logError
+                         (\model -> logInfo  cLogLevel "Model has been obtained."
+                                 >> logDebug cLogLevel (prettyShow model)
+                                 >> runReaderT mainLoop model)
+        "vkontakte" -> VKontakte.getModel cfg
+                    >>= either logError
+                         (\model -> logInfo  cLogLevel "Model has been obtained."
+                                 >> logDebug cLogLevel (prettyShow model)
+                                 >> runReaderT mainLoop model)
 
-    Right cfg@Config{cPlatformName="vkontakte",..} ->
-      logInfo cLogLevel "Configuration parsed successfully."
-      >> logDebug cLogLevel (prettyShow cfg)
-      >> logInfo cLogLevel "VKontakte platform has been selected."
-      >> logInfo cLogLevel "Check request environment and try to get Model from Config."
-      >> VKontakte.getModel cfg
-      >>= either logError
-           (\model -> logInfo cLogLevel "Model has been obtained."
-                   >> logDebug cLogLevel (prettyShow model)
-                   >> runReaderT mainLoop model)
-
-    _             ->  logError "Unrecognized platform name"
+        _           ->  logError "Unrecognized platform name"
 
 
 mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
@@ -53,10 +47,10 @@ mainLoop = do
   income <- liftIO $ getIncome model
 
   case income of
-    Left msg  -> liftIO $ logWarning logLevel msg
-              >> logInfo logLevel "Waiting 10 seconds before retrying."
-              >> threadDelay (1000000 * 10)
-              >> runReaderT mainLoop model
+    Left msg -> liftIO $ logWarning logLevel msg
+             >> logInfo logLevel "Waiting 10 seconds before retrying."
+             >> threadDelay (1000000 * 10)
+             >> runReaderT mainLoop model
 
     Right incomeWithUpdates -> do
       model' <- liftIO $ handleIncome model incomeWithUpdates
