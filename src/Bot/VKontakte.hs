@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 module Bot.VKontakte where
@@ -37,7 +38,7 @@ instance Bot VKontakteEnv where
   type BotIncome VKontakteEnv = Response
   type BotUpdate VKontakteEnv = Update
 
-  getIncome Model{..} = do
+  getIncome Model{platformEnv, logLevel} = do
     let method = UpdatesGet
           { uServer = server platformEnv
           , uKey = key platformEnv
@@ -168,7 +169,7 @@ toAttachmentFormat Attachment{..} =
 
 getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
 getModel Config{cGroupId = Nothing} = pure $ Left "group_id is required for VKontakte."
-getModel Config{cGroupId = Just groupId,..} = do
+getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
     rawResponse <- VKontakte.sendMethod (logDebug cLogLevel) $
                       GetLongPollServer
                           { gAccessToken = cToken

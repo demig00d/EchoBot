@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NamedFieldPuns   #-}
 module Bot (startBot) where
 
 import           Control.Concurrent
@@ -19,7 +20,7 @@ startBot path = do
   case config of
     Left message -> logError message
 
-    Right cfg@Config{..} ->
+    Right cfg@Config{cPlatformName, cLogLevel} ->
       logInfo cLogLevel "Configuration parsed successfully."
       >> logDebug cLogLevel (prettyShow cfg)
       >> logInfo  cLogLevel "Check request environment and try to get Model from Config."
@@ -40,7 +41,7 @@ startBot path = do
 
 mainLoop :: (Bot env, MonadReader (Model env) m, MonadIO m) => m ()
 mainLoop = do
-  model@Model{..} <- ask
+  model@Model{logLevel, usersSettings} <- ask
   liftIO $ logDebug logLevel ("Map of user_id and repeat_number:\n" <> prettyShowMap usersSettings)
 
   liftIO $ logInfo logLevel "Receiving incoming updates."
