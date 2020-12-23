@@ -48,7 +48,7 @@ data BotSettings =
     { bHelpMessage     :: Text
     , bRepeatMessage   :: Text
     , bNumberOfRepeats :: Int
-    } deriving Show
+    } deriving (Show, Eq)
 
 -- A Map from keys 'user_id' to 'number of repeats'.
 type UserSettings = Map Int Int
@@ -67,7 +67,7 @@ data Config =
     , cToken        :: String
     , cGroupId      :: Maybe String
     , cLogLevel     :: Priority
-    } deriving Show
+    } deriving (Show, Eq)
 
 $(deriveManyJSON
     [''Config
