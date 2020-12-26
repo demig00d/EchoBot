@@ -10,6 +10,7 @@ import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
 import           Logging
+import           Requests
 import           Telegram.API               as Telegram
 import           Telegram.Types
 import           Utils                      (eitherDecode, gshow, lookupInsert,
@@ -29,8 +30,8 @@ instance Bot TelegramEnv where
 
   getIncome Model{logLevel,platformEnv=TelegramEnv{..}} = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
-
-    eRespBS <- Telegram.sendMethod (logDebug logLevel) token $ GetUpdates offset 25
+    let request = Telegram.encodeRequest (logDebug logLevel) token $ GetUpdates offset 25
+    eRespBS <- sendPost request
     logInfo' logLevel "Response recieved."
     logDebug logLevel (("\n"<>) <$> eRespBS)
     pure $ do
@@ -97,7 +98,8 @@ handleMessage model message updateId =
     sendMessage t cid msg rm = do
       logInfo' logLevel "Handling command."
       logInfo' logLevel "Send request with 'sendMessage' method to reply to user's command."
-      eResponse <- Telegram.sendMethod (logDebug logLevel) t $ SendMessage cid msg rm
+      let request = Telegram.encodeRequest (logDebug logLevel) t $ SendMessage cid msg rm
+      eResponse <- sendPost request
       case eResponse of
         Left m       -> logWarning logLevel m
         Right response -> logInfo' logLevel "Reply sended."
@@ -108,7 +110,8 @@ handleMessage model message updateId =
       logInfo' logLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
       logInfo logLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ echoNumber $ do
-            eResponse <- Telegram.sendMethod (logDebug logLevel) t $ CopyMessage cid fcid mid
+            let request = Telegram.encodeRequest (logDebug logLevel) t $ CopyMessage cid fcid mid
+            eResponse <- sendPost request
             case eResponse of
               Left msg       -> logWarning logLevel msg
               Right response -> logInfo' logLevel "Message has been echoed."

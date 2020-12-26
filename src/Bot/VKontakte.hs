@@ -14,10 +14,11 @@ import           Data.Text                  as T (Text, intercalate)
 
 import           Bot.Types
 import           Logging
+import           Requests
 import           Utils
 import           VKontakte.API              (Keyboard (..), Method (..),
                                              mkButton)
-import qualified VKontakte.API              as VKontakte (sendMethod)
+import qualified VKontakte.API              as VKontakte (encodeRequest)
 import           VKontakte.Types
 
 
@@ -47,7 +48,8 @@ instance Bot VKontakteEnv where
           , uTs = ts platformEnv
           }
     logInfo' logLevel "Send request to VKontakte server and wait for response."
-    eResponse <- VKontakte.sendMethod (logDebug logLevel) method
+    let request = VKontakte.encodeRequest (logDebug logLevel) method
+    eResponse <- sendPost request
     case eResponse of
       Left msg       -> pure $ Left msg
       Right response -> do
@@ -123,7 +125,8 @@ handleMessage model@Model{..} Message{..} =
     sendMethod :: Method -> IO (Model VKontakteEnv)
     sendMethod  m = do
       logInfo' logLevel "Send request with 'messages.send' method to reply to user's command."
-      result <- VKontakte.sendMethod (logDebug logLevel) m
+      let request = VKontakte.encodeRequest (logDebug logLevel) m
+      result <- sendPost request
       case result of
         Left msg   -> logWarning logLevel msg
         Right resp -> logInfo' logLevel "Reply to command has been sent."
@@ -135,7 +138,8 @@ handleMessage model@Model{..} Message{..} =
     sendEcho num m = do
       logInfo logLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
       replicateM_ num $ do
-        result <- VKontakte.sendMethod (logDebug logLevel) m
+        let request = VKontakte.encodeRequest (logDebug logLevel) m
+        result <- sendPost request
         case result of
            Left msg   -> logWarning logLevel msg
            Right resp -> logInfo' logLevel "Message has been echoed."
@@ -170,18 +174,20 @@ toAttachmentFormat Attachment{..} =
 getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
 getModel Config{cGroupId = Nothing} = pure $ Left "group_id is required for VKontakte."
 getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
-    rawResponse <- VKontakte.sendMethod (logDebug cLogLevel) $
-                      GetLongPollServer
-                          { gAccessToken = cToken
-                          , gGroupId = groupId
-                          , gV = apiVersion
-                          }
-    logDebug cLogLevel rawResponse
-    pure $ do
-      rawResponse' <- rawResponse
-      resp <- eitherDecode rawResponse'
-      skt <- maybe (Left "Failed on getting Update.") Right (rResponse resp)
-      pure $ model skt
+  let request = VKontakte.encodeRequest (logDebug cLogLevel) $
+                    GroupsGetLongPollServer
+                        { gAccessToken = cToken
+                        , gGroupId = groupId
+                        , gV = apiVersion
+                        }
+  rawResponse <- sendPost request
+
+  logDebug cLogLevel rawResponse
+  pure $ do
+    rawResponse' <- rawResponse
+    resp <- eitherDecode rawResponse'
+    skt <- maybe (Left "Failed on getting Update.") Right (rResponse resp)
+    pure $ model skt
   where
     model serverKeyTs = Model
               { botSettings   = cBotSettings

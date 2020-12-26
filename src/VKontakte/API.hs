@@ -6,12 +6,15 @@ module VKontakte.API where
 
 import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Data
-import           Data.Text                  (Text)
+import           Data.Char                  (isUpper, toLower)
+import           Data.Data                  (Data (toConstr))
+import           Data.Text                  (Text, cons)
 import           Prelude                    hiding (log)
 
-import           Data.UrlEncoded            (ToUrlEncoded)
-import           Requests                   (sendPostUrlEncoded)
+import           Data.UrlEncoded            (ToUrlEncoded, toUrlEncoded)
+import           Requests                   as Requests (Handler (..),
+                                                         hContentType,
+                                                         urlEncode)
 import           Utils                      (deriveManyJSON)
 
 
@@ -20,7 +23,7 @@ apiUrl = "https://api.vk.com/method/"
 
 
 data Method
-  = GetLongPollServer
+  = GroupsGetLongPollServer
       { gAccessToken :: String
       , gGroupId     :: String
       , gV           :: String
@@ -45,18 +48,29 @@ data Method
       } deriving (Data, ToUrlEncoded)
 
 
-sendMethod :: (S8.ByteString -> IO ()) -> Method -> IO (Either L8.ByteString L8.ByteString)
-sendMethod logger = \case
-  m@GetLongPollServer{} ->
-      send (apiUrl <> "groups.getLongPollServer") m
+instance Show Method where
+  show = helper . show . toConstr where
+    helper []     = []
+    helper (x:xs) = toLower x : helper2 xs
+    helper2 a | null a = []
+              | isUpper (head a) = '.' : toLower (head a) : tail a
+              | otherwise = head a : helper2 (tail a)
 
+
+encodeRequest :: (S8.ByteString -> IO ()) -> Method -> Requests.Handler
+encodeRequest logger = \case
   m@UpdatesGet{uServer=uServer} ->
-      send uServer m{uServer=""} -- Omit 'server' field in request body
-                                               -- because its value is already contained inside URL
-  m@MessagesSend{} ->
-      send (apiUrl <> "messages.send") m
+       encode uServer m{uServer=""} -- Omit 'server' field in request body
+                                    -- because its value is already contained inside URL
+  m -> encode (apiUrl <> show m) m
   where
-    send url body = sendPostUrlEncoded logger url body
+    encode url body =
+      Requests.Handler
+        { url = url
+        , body = urlEncode False $ toUrlEncoded body
+        , headers = [(hContentType, "application/x-www-form-urlencoded")]
+        , logger = logger
+        }
 
 
 data Keyboard =
@@ -95,6 +109,6 @@ mkButton :: Text -> Button
 mkButton b =
   Button $ Action
     { aType = "text"
-    , aLabel = "/"<>b
-    , aPayload = Payload $ "/"<>b
+    , aLabel = '/' `cons` b
+    , aPayload = Payload $ '/' `cons` b
     }

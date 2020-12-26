@@ -1,46 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Requests where
+module Requests
+  ( Handler(..)
+  , sendGet
+  , hContentType
+  , sendPost
+  , urlEncode
+  ) where
+
 
 import           Control.Exception          (tryJust)
-import           Data.Aeson                 (ToJSON, Value, decode, encode)
+import           Data.Aeson                 (Value, decode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Char8      as S8 (ByteString, pack)
-import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, toStrict)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack)
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS    (tlsManagerSettings)
-import           Network.HTTP.Types         (hContentType, urlEncode)
+import           Network.HTTP.Types         (RequestHeaders, hContentType,
+                                             urlEncode)
 import           Prelude                    hiding (log)
 
-import           Data.UrlEncoded
 
+data Handler =
+  Handler
+    { url     :: String
+    , body    :: S8.ByteString
+    , headers :: RequestHeaders
+    , logger  :: S8.ByteString -> IO ()
+    }
 
-sendPostJSON :: ToJSON b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
-sendPostJSON logger url body = do
-  log url bodyEncoded
+sendPost :: Handler -> IO (Either L8.ByteString L8.ByteString)
+sendPost Handler{..} = do
+  log url body
   send request
     { method = "POST"
-    , requestBody = RequestBodyBS bodyEncoded
-    , requestHeaders = [(hContentType, "application/json")]
+    , requestBody = RequestBodyBS body
+    , requestHeaders = headers
     }
   where
     log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
 
     request = parseRequest_ url
-    bodyEncoded = L8.toStrict $ encode body
-
-sendPostUrlEncoded :: ToUrlEncoded b => (S8.ByteString -> IO ()) -> String -> b -> IO (Either L8.ByteString L8.ByteString)
-sendPostUrlEncoded logger url body = do
-  log url bodyEncoded
-  send request
-    { method = "POST"
-    , requestBody = RequestBodyBS bodyEncoded
-    , requestHeaders = [(hContentType, "application/x-www-form-urlencoded")]
-    }
-  where
-    log u b = logger $ "\n    URL: " <> S8.pack u <> "\n    Request body: " <> b
-
-    request = parseRequest_ url
-    bodyEncoded = urlEncode False $ toUrlEncoded body
 
 
 sendGet :: String -> IO (Either L8.ByteString L8.ByteString)
@@ -62,7 +61,7 @@ sendRequest :: Request -> IO (Either L8.ByteString L8.ByteString)
 sendRequest request = do
   -- A Manager is present to keep track of open connections, so that multiple
   -- requests to the same server use the same connection.
-  manager  <- newManager tlsManagerSettings
+  manager <- newManager tlsManagerSettings
 
   tryJust selectHttpException (responseBody <$> httpLbs request manager)
   where

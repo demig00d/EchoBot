@@ -1,13 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TemplateHaskell    #-}
 module Telegram.API where
 
+import qualified Data.Aeson                 as Aeson (encode)
 import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import           Data.Char                  (toLower)
+import           Data.Data                  (Data (toConstr))
 import           Data.Text                  (Text)
 import           Prelude                    hiding (log)
 
-import           Requests                   (sendGet, sendPostJSON)
+import           Requests                   as Requests (Handler (..),
+                                                         hContentType, sendGet)
 import           Utils                      (deriveManyJSON)
 
 
@@ -29,17 +34,18 @@ data Method
       , cFromChatId :: Int
       , cMessageId  :: Int
       }
+  deriving Data
 
 newtype InlineKeyboardMarkup =
   InlineKeyboardMarkup
     { rInlineKeyboard :: [[InlineKeyboardButton]]
-    }
+    } deriving Data
 
 data InlineKeyboardButton =
   InlineKeyboardButton
     { iText         :: String
     , iCallbackData :: String
-    }
+    } deriving Data
 
 
 $(deriveManyJSON
@@ -47,6 +53,11 @@ $(deriveManyJSON
     , ''InlineKeyboardMarkup
     , ''InlineKeyboardButton
     ])
+
+instance Show Method where
+  show = helper . show . toConstr where
+    helper []     = []
+    helper (x:xs) = toLower x : xs
 
 
 mkKeyboard :: [(String, String)] -> InlineKeyboardMarkup
@@ -63,15 +74,15 @@ getMe token = do
            _              -> Left bs
 
 
-sendMethod :: (S8.ByteString -> IO ()) -> String -> Method -> IO (Either L8.ByteString L8.ByteString)
-sendMethod logger token = \case
-  m@GetUpdates{}  ->
-    send "/getUpdates" m
-  m@SendMessage{} ->
-    send "/sendMessage" m
-  m@CopyMessage{} ->
-    send "/copyMessage" m
+encodeRequest
+  :: (S8.ByteString -> IO ()) -> String -> Method -> Requests.Handler
+encodeRequest logger token method = encode (show method) method
   where
-    send methodName body =
-      let url  = apiUrl <> token <> methodName
-      in sendPostJSON logger url body
+    encode methodName body =
+      let url  = apiUrl <> token <> ('/' : methodName)
+      in Requests.Handler
+          { url = url
+          , body = L8.toStrict $ Aeson.encode body
+          , headers = [(hContentType, "application/json")]
+          , logger = logger
+          }
