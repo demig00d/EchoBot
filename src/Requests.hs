@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Requests
   ( Handler(..)
@@ -27,6 +28,20 @@ data Handler =
     , headers :: RequestHeaders
     , logger  :: S8.ByteString -> IO ()
     }
+
+instance Eq Handler where
+  Handler url1 body1 headers1 _ == Handler url2 body2 headers2 _
+    =  url1     == url2
+    && body1    == body2
+    && headers1 == headers2
+
+instance Show Handler where
+  show Handler{url, body, headers} =
+    "Handler{ url="     <> show url
+        <> ", body="    <> show body
+        <> ", headers=" <> show headers
+        <> "}"
+
 
 sendPost :: Handler -> IO (Either L8.ByteString L8.ByteString)
 sendPost Handler{..} = do
@@ -71,5 +86,5 @@ sendRequest request = do
           Just . L8.pack $ show failedRequest <> show content
 
       InvalidUrlException url reason ->
-          Just . L8.pack $ "A URL '"<> url <> "': " <> reason <> "."
+          Just . L8.pack $ "A URL '" <> url <> "': " <> reason <> "."
 
