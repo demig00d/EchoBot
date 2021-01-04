@@ -5,7 +5,7 @@ module Bot.Telegram (getModel) where
 
 import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Map.Strict            (empty, insert)
+import           Data.Map.Strict            (empty, findWithDefault, insert)
 import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
@@ -13,8 +13,7 @@ import           Logging
 import           Requests
 import           Telegram.API               as Telegram
 import           Telegram.Types
-import           Utils                      (eitherDecode, gshow, lookupInsert,
-                                             nTimes)
+import           Utils                      (eitherDecode, gshow, nTimes)
 
 
 data TelegramEnv =
@@ -82,10 +81,9 @@ handleMessage model message updateId =
 
     startMessage = "Hi, " <> firstName <> "! " <> bHelpMessage
 
-    (echoNumber, usersSettings') = lookupInsert fromChatId bNumberOfRepeats usersSettings
+    echoNumber = findWithDefault bNumberOfRepeats fromChatId usersSettings
 
-    model' = model{usersSettings=usersSettings'
-                  ,platformEnv=platformEnv{offset = updateId + 1}}
+    model' = model{platformEnv=platformEnv{offset = updateId + 1}}
 
     numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
 

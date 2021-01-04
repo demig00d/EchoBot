@@ -1,4 +1,3 @@
-{-# LANGUAGE TupleSections #-}
 module Utils
   ( deriveJSON
   , deriveManyJSON
@@ -11,8 +10,6 @@ module Utils
   --
   , eitherDecode
   --
-  , lookupInsert
-  --
   , nTimes
   ) where
 
@@ -22,7 +19,7 @@ import qualified Data.Aeson.TH              as TH (deriveJSON)
 import           Data.ByteString.Char8      as S8 (ByteString)
 import           Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Char                  (isUpper, toLower)
-import           Data.Map.Strict            as Map (Map, insert, lookup, toList)
+import           Data.Map.Strict            as Map (Map, toList)
 import           Data.String                (IsString, fromString)
 import           Data.Text                  (Text)
 import           Language.Haskell.TH
@@ -99,12 +96,6 @@ eitherDecode :: (IsString a, FromJSON b) => L8.ByteString -> Either a b
 eitherDecode bs = either (Left . fromString) Right (Aeson.eitherDecode bs)
 {-# INLINE eitherDecode #-}
 {-# SPECIALIZE eitherDecode :: FromJSON b => L8.ByteString -> Either L8.ByteString b #-}
-
-
--- | Lookup value in Map or insert defailt value if it does not exist yet.
-lookupInsert :: Ord k => k -> a -> Map k a -> (a, Map k a)
-lookupInsert key defaultValue dict =
-  maybe (defaultValue, Map.insert key defaultValue dict) (, dict) (Map.lookup key dict)
 
 
 nTimes :: Int -> String

@@ -9,7 +9,7 @@ import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
 import           Data.Functor               ((<&>))
-import           Data.Map.Strict            (empty, insert)
+import           Data.Map.Strict            (empty, findWithDefault, insert)
 import           Data.Text                  as T (Text, intercalate)
 
 import           Bot.Types
@@ -115,7 +115,7 @@ handleMessage model@Model{..} Message{..} =
         , kButtons = [fmap mkButton (gshow <$> ([1..5] :: [Int]))]
         }
 
-    (echoNumber, usersSettings') = lookupInsert mFromId bNumberOfRepeats usersSettings
+    echoNumber = findWithDefault bNumberOfRepeats mFromId usersSettings
 
     setRepeatsNumber number model' =
       logInfo' logLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow echoNumber <> ".")
@@ -132,7 +132,7 @@ handleMessage model@Model{..} Message{..} =
         Right resp -> logInfo' logLevel "Reply to command has been sent."
                    >> logDebug logLevel ("\n" <> resp)
 
-      pure model{usersSettings=usersSettings'}
+      pure model
 
     sendEcho :: Int -> Method -> IO (Model VKontakteEnv)
     sendEcho num m = do
@@ -145,7 +145,7 @@ handleMessage model@Model{..} Message{..} =
            Right resp -> logInfo' logLevel "Message has been echoed."
                       >> logDebug logLevel ("\n" <> resp)
 
-      pure model{usersSettings=usersSettings'}
+      pure model
 
     messagesSend =
       MessagesSend
