@@ -90,6 +90,7 @@ test-suite haskellEchoBot-test
   main-is: Spec.hs
   other-modules:
       ConfigurationSpec
+      TelegramSpec
       Paths_haskellEchoBot
   hs-source-dirs:
       test

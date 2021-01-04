@@ -57,7 +57,7 @@ instance Bot VKontakteEnv where
         logDebug logLevel response
         pure $ eitherDecode response
 
-  handleUpdate model update =
+  handleIncome model update =
     case oMessage $ uObject update of
       Just msg -> handleMessage model msg
       _        ->

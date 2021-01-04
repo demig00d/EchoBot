@@ -1,7 +1,13 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
-module Bot.Telegram (getModel) where
+module Bot.Telegram
+  ( getModel
+  , encodeGetIncome
+  , TelegramEnv(..)
+  , Action(..)
+  , handleUpdate
+  ) where
 
 import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -23,13 +29,21 @@ data TelegramEnv =
     } deriving Show
 
 
+-- Auxiliary types for update handling
+data Action
+  = SetRepeatNumber Int Int
+  | Send Method
+  | DoNothing
+  deriving (Show, Eq)
+
 instance Bot TelegramEnv where
   type BotIncome TelegramEnv = [Update]
   type BotUpdate TelegramEnv = Update
 
-  getIncome Model{logLevel,platformEnv=TelegramEnv{..}} = do
+  getIncome model@Model{logLevel} = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
-    let request = Telegram.encodeRequest (logDebug logLevel) token $ GetUpdates offset 25
+    let request = encodeGetIncome model
+
     eRespBS <- sendPost request
     logInfo' logLevel "Response recieved."
     logDebug logLevel (("\n"<>) <$> eRespBS)
@@ -39,81 +53,86 @@ instance Bot TelegramEnv where
       maybe (Left "Failed on getting Update.") Right (rResult resp)
 
 
-  handleUpdate model = \case
-    Update{rCallbackQuery = Just (CallbackQuery cdata cFrom), rUpdateId} ->
-      case readMaybe cdata :: Maybe Int of
-        Just n -> setRepeatNumber model (uId cFrom) rUpdateId n
-        _      -> logWarning (logLevel model) ("Can't parse callbackquery: " <> cdata)
-               >> pure model
-
-    Update{rMessage = Just message, rUpdateId} ->
-      case mText message of
-        Just "/start"  -> handleMessage model message rUpdateId ShowStart
-        Just "/help"   -> handleMessage model message rUpdateId ShowHelp
-        Just "/repeat" -> handleMessage model message rUpdateId ShowRepeat
-        _              -> handleMessage model message rUpdateId Echo
-
-    _  -> logWarning' (logLevel model) "Can't handle Update" >> pure model
+  handleIncome model@Model{..} income = do
+    let action = handleUpdate model income
+    model' <- case action of
+      SetRepeatNumber userId n -> do
+        logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+        pure $ setRepeatNumber userId n model
+      sendAction -> do
+        handleSendAction model sendAction
+        pure model
+    pure $ model'{platformEnv = platformEnv{Bot.Telegram.offset=rUpdateId income + 1}}
 
 
   extractUpdates updates _ = Just updates
 
 
-setRepeatNumber :: Model TelegramEnv -> Int -> Int -> Int -> IO (Model TelegramEnv)
-setRepeatNumber model@Model{usersSettings, platformEnv, logLevel} userId updateId n =
-  logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
-  >> pure model{ usersSettings = insert userId n usersSettings
-               , platformEnv = platformEnv{offset=updateId + 1}
-               }
+handleUpdate :: Model TelegramEnv -> Update -> Action
+handleUpdate model@Model{..} = \case
+  Update{rCallbackQuery = Just (CallbackQuery cdata cFrom)} ->
+    case readMaybe cdata :: Maybe Int of
+      Just n -> SetRepeatNumber (uId cFrom) n
+      _      -> DoNothing
+  Update{rMessage = Just message} -> handleMessage model message
+  _ -> DoNothing
 
-handleMessage :: Model TelegramEnv -> Message -> Int -> MessageAction -> IO (Model TelegramEnv)
-handleMessage model message updateId =
-  \case
-      ShowStart    -> sendMessage token chatId startMessage Nothing             >> pure model'
-      ShowHelp     -> sendMessage token chatId bHelpMessage Nothing             >> pure model'
-      ShowRepeat   -> sendMessage token chatId repeatMessage (Just numKeyboard) >> pure model'
-      Echo         -> copyMessage token chatId fromChatId messageId             >> pure model'
+handleMessage :: Model TelegramEnv -> Message -> Action
+handleMessage Model{usersSettings, botSettings} message =
+    case mText message of
+      Just "/start"  -> Send $ SendMessage chatId startMessage  Nothing
+      Just "/help"   -> Send $ SendMessage chatId helpMessage   Nothing
+      Just "/repeat" -> Send $ SendMessage chatId repeatMessage (Just numKeyboard)
+      _              -> Send $ CopyMessage chatId fromChatId messageId
   where
     chatId     = cId $ mChat message
     fromChatId = uId $ mFrom message
     messageId  = mMessageId  message
-    firstName = uFirstName $ mFrom message
+    firstName  = uFirstName $ mFrom message
 
-    startMessage = "Hi, " <> firstName <> "! " <> bHelpMessage
+    echoNumber = findWithDefault (bNumberOfRepeats botSettings) fromChatId usersSettings
 
-    echoNumber = findWithDefault bNumberOfRepeats fromChatId usersSettings
-
-    model' = model{platformEnv=platformEnv{offset = updateId + 1}}
+    helpMessage = bHelpMessage botSettings
+    startMessage = "Hi, " <> firstName <> "! " <> helpMessage
+    repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage botSettings
 
     numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
 
-    Model{..} = model
-    TelegramEnv{..} = platformEnv
-    BotSettings{..} = botSettings
 
-    repeatMessage = "Current number of repeats = " <> gshow echoNumber <> ".\n" <> bRepeatMessage
+setRepeatNumber :: Int -> Int -> Model TelegramEnv -> Model TelegramEnv
+setRepeatNumber userId n model@Model{usersSettings} =
+  model{ usersSettings = insert userId n usersSettings }
 
-    sendMessage t cid msg rm = do
+handleSendAction :: Model TelegramEnv -> Action -> IO ()
+handleSendAction Model{platformEnv=TelegramEnv{token},..} = \case
+  Send method@SendMessage{} -> sendMessage method
+  Send method@CopyMessage{} -> copyMessage method
+  _                         -> pure ()
+
+  where
+    echoNumber m = findWithDefault (bNumberOfRepeats botSettings) (chatId m) usersSettings
+
+    sendMessage method = do
       logInfo' logLevel "Handling command."
       logInfo' logLevel "Send request with 'sendMessage' method to reply to user's command."
-      let request = Telegram.encodeRequest (logDebug logLevel) t $ SendMessage cid msg rm
+      let request = Telegram.encodeRequest (logDebug logLevel) token method
       eResponse <- sendPost request
       case eResponse of
-        Left m       -> logWarning logLevel m
+        Left m         -> logWarning logLevel m
         Right response -> logInfo' logLevel "Reply sended."
                        >> logDebug logLevel ("\n" <> response)
 
-    copyMessage t cid fcid mid = do
+    copyMessage method = do
       logInfo' logLevel "Handling message."
-      logInfo' logLevel ("Number of repeats for user: " <> gshow fcid <> " is " <> gshow echoNumber <> ".")
-      logInfo logLevel ("Send request with 'copyMessage' method " <> nTimes echoNumber <> " to echo user's message.")
-      replicateM_ echoNumber $ do
-            let request = Telegram.encodeRequest (logDebug logLevel) t $ CopyMessage cid fcid mid
-            eResponse <- sendPost request
-            case eResponse of
-              Left msg       -> logWarning logLevel msg
-              Right response -> logInfo' logLevel "Message has been echoed."
-                             >> logDebug logLevel ("\n" <> response)
+      logInfo' logLevel ("Number of repeats for user: " <> gshow (chatId method) <> " is " <> gshow (echoNumber method) <> ".")
+      logInfo  logLevel ("Send request with 'copyMessage' method " <> nTimes (echoNumber method) <> " to echo user's message.")
+      replicateM_ (echoNumber method) $ do
+          let request = Telegram.encodeRequest (logDebug logLevel) token method
+          eResponse <- sendPost request
+          case eResponse of
+            Left msg       -> logWarning logLevel msg
+            Right response -> logInfo' logLevel "Message has been echoed."
+                           >> logDebug logLevel ("\n" <> response)
 
 
 -- | Check request environment and try to get Model from Config.
@@ -137,3 +156,7 @@ getModel Config{..} = do
                 , logLevel      = cLogLevel
                 }
 
+
+encodeGetIncome :: Model TelegramEnv -> Requests.Handler
+encodeGetIncome Model{logLevel, platformEnv=TelegramEnv{..}} =
+  Telegram.encodeRequest (logDebug logLevel) token $ GetUpdates offset 25
