@@ -18,16 +18,16 @@ class Show env => Bot env where
 
   getIncome   :: Model env -> IO (Either L8.ByteString (BotIncome env))
 
-  handleIncome :: Model env -> BotIncome env -> IO (Model env)
-  handleIncome model income =
+  handleIncomes :: Model env -> BotIncome env -> IO (Model env)
+  handleIncomes model income =
     case extractUpdates income model of
       Nothing      -> logWarning (logLevel model) "Can't get Updates." >> pure model
       Just []      -> logInfo (logLevel model) "Updates are empty."    >> pure model
       Just updates -> logInfo (logLevel model) "Handling updates."
               >> let model' = updateModel model income
-              in foldM handleUpdate model' updates
+              in foldM handleIncome model' updates
 
-  handleUpdate :: Model env -> BotUpdate env  -> IO (Model env)
+  handleIncome :: Model env -> BotUpdate env  -> IO (Model env)
 
   updateModel :: Model env -> BotIncome env -> Model env
   updateModel = const
@@ -52,13 +52,6 @@ data BotSettings =
 
 -- A Map from keys 'user_id' to 'number of repeats'.
 type UserSettings = Map Int Int
-
--- Auxiliary type for update handling
-data MessageAction
-  = ShowStart
-  | ShowHelp
-  | ShowRepeat
-  | Echo
 
 data Config =
   Config

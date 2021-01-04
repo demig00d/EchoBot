@@ -1,6 +1,7 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
 module Telegram.API where
 
 import qualified Data.Aeson                 as Aeson (encode)
@@ -11,8 +12,8 @@ import           Data.Data                  (Data (toConstr))
 import           Data.Text                  (Text)
 import           Prelude                    hiding (log)
 
-import           Requests                   as Requests (Handler (..),
-                                                         hContentType, sendGet)
+import           Requests                   (Handler (..), hContentType,
+                                             sendGet)
 import           Utils                      (deriveManyJSON)
 
 
@@ -21,31 +22,31 @@ apiUrl = "https://api.telegram.org/bot"
 
 data Method
   = GetUpdates
-      { gOffset  :: Int
-      , gTimeout :: Int
+      { offset  :: Int
+      , timeout :: Int
       }
   | SendMessage
-      { sChatId      :: Int
-      , sText        :: Text
-      , sReplyMarkup :: Maybe InlineKeyboardMarkup
+      { chatId      :: Int
+      , text        :: Text
+      , replyMarkup :: Maybe InlineKeyboardMarkup
       }
   | CopyMessage
-      { cChatId     :: Int
-      , cFromChatId :: Int
-      , cMessageId  :: Int
+      { chatId     :: Int
+      , fromChatId :: Int
+      , messageId  :: Int
       }
-  deriving Data
+  deriving (Data, Show, Eq)
 
 newtype InlineKeyboardMarkup =
   InlineKeyboardMarkup
     { rInlineKeyboard :: [[InlineKeyboardButton]]
-    } deriving Data
+    } deriving (Data, Show, Eq)
 
 data InlineKeyboardButton =
   InlineKeyboardButton
     { iText         :: String
     , iCallbackData :: String
-    } deriving Data
+    } deriving (Data, Show, Eq)
 
 
 $(deriveManyJSON
@@ -54,10 +55,10 @@ $(deriveManyJSON
     , ''InlineKeyboardButton
     ])
 
-instance Show Method where
-  show = helper . show . toConstr where
-    helper []     = []
-    helper (x:xs) = toLower x : xs
+getName :: Method -> String
+getName = helper . show . toConstr where
+  helper []     = []
+  helper (x:xs) = toLower x : xs
 
 
 mkKeyboard :: [(String, String)] -> InlineKeyboardMarkup
@@ -76,7 +77,7 @@ getMe token = do
 
 encodeRequest
   :: (S8.ByteString -> IO ()) -> String -> Method -> Requests.Handler
-encodeRequest logger token method = encode (show method) method
+encodeRequest logger token method = encode (getName method) method
   where
     encode methodName body =
       let url  = apiUrl <> token <> ('/' : methodName)
