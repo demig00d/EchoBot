@@ -103,24 +103,24 @@ sendKeyboard = Send
     , replyMarkup = Just
         (InlineKeyboardMarkup
             [[ InlineKeyboardButton
-                { iText         = "1"
-                , iCallbackData = "1"
+                { text         = "1"
+                , callbackData = "1"
                 }
             , InlineKeyboardButton
-                { iText         = "2"
-                , iCallbackData = "2"
+                { text         = "2"
+                , callbackData = "2"
                 }
             , InlineKeyboardButton
-                { iText         = "3"
-                , iCallbackData = "3"
+                { text         = "3"
+                , callbackData = "3"
                 }
             , InlineKeyboardButton
-                { iText         = "4"
-                , iCallbackData = "4"
+                { text         = "4"
+                , callbackData = "4"
                 }
             , InlineKeyboardButton
-                { iText         = "5"
-                , iCallbackData = "5"
+                { text         = "5"
+                , callbackData = "5"
                 }
             ]]
         )
