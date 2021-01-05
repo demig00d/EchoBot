@@ -10,7 +10,7 @@ import           Data.Text                  (Text)
 import           Data.Text.Encoding         (encodeUtf8)
 import           Prelude                    hiding (log)
 
-import           Utils                      (deriveJSON)
+import           Data.Aeson.TH              (defaultOptions, deriveJSON)
 
 
 data Priority
@@ -20,7 +20,7 @@ data Priority
   | Error
   deriving (Show, Eq, Ord)
 
-$(deriveJSON ''Priority)
+$(deriveJSON defaultOptions ''Priority)
 
 
 class ToLogStr msg where

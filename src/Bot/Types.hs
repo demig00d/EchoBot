@@ -9,7 +9,7 @@ import           Data.Map.Strict
 import           Data.Text                  (Text)
 
 import           Logging                    (Priority, logInfo, logWarning)
-import           Utils                      (deriveManyJSON)
+import           Utils                      (deriveManyJSON, dropPrefixOptions)
 
 
 class Show env => Bot env where
@@ -62,7 +62,7 @@ data Config =
     , cLogLevel     :: Priority
     } deriving (Show, Eq)
 
-$(deriveManyJSON
+$(deriveManyJSON dropPrefixOptions
     [''Config
     ,''BotSettings
     ])

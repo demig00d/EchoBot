@@ -1,6 +1,7 @@
 module Utils
-  ( deriveJSON
-  , deriveManyJSON
+  ( deriveManyJSON
+  , standartOptions
+  , dropPrefixOptions
   --
   , dropPrefix
   --
@@ -25,15 +26,24 @@ import           Data.Text                  (Text)
 import           Language.Haskell.TH
 
 
-deriveJSON :: Name -> Q [Dec]
-deriveJSON = TH.deriveJSON defaultOptions
+dropPrefixOptions :: Options
+dropPrefixOptions =
+  defaultOptions
     { fieldLabelModifier =  camelTo2 '_' . dropPrefix
     , omitNothingFields  = True
     , sumEncoding = UntaggedValue
     }
 
-deriveManyJSON :: Traversable t => t Name -> Q [Dec]
-deriveManyJSON names = concat <$> mapM deriveJSON names
+standartOptions :: Options
+standartOptions =
+  defaultOptions
+    { fieldLabelModifier =  camelTo2 '_'
+    , omitNothingFields  = True
+    , sumEncoding = UntaggedValue
+    }
+
+deriveManyJSON :: Traversable t => Options -> t Name -> Q [Dec]
+deriveManyJSON options names = concat <$> mapM (TH.deriveJSON options) names
 
 
 dropPrefix :: String -> String

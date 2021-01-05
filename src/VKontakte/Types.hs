@@ -3,7 +3,7 @@ module VKontakte.Types where
 
 import           Data.Text (Text)
 
-import           Utils     (deriveManyJSON)
+import           Utils     (deriveManyJSON, dropPrefixOptions)
 
 
 newtype Sticker =
@@ -62,7 +62,7 @@ data Response =
     }
 
 
-$(deriveManyJSON
+$(deriveManyJSON dropPrefixOptions
     [ ''Sticker
     , ''Media
     , ''Attachment
