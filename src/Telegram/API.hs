@@ -14,7 +14,7 @@ import           Prelude                    hiding (log)
 
 import           Requests                   (Handler (..), hContentType,
                                              sendGet)
-import           Utils                      (deriveManyJSON)
+import           Utils                      (deriveManyJSON, standartOptions)
 
 
 apiUrl :: String
@@ -39,17 +39,17 @@ data Method
 
 newtype InlineKeyboardMarkup =
   InlineKeyboardMarkup
-    { rInlineKeyboard :: [[InlineKeyboardButton]]
+    { inlineKeyboard :: [[InlineKeyboardButton]]
     } deriving (Data, Show, Eq)
 
 data InlineKeyboardButton =
   InlineKeyboardButton
-    { iText         :: String
-    , iCallbackData :: String
+    { text         :: String
+    , callbackData :: String
     } deriving (Data, Show, Eq)
 
 
-$(deriveManyJSON
+$(deriveManyJSON standartOptions
     [ ''Method
     , ''InlineKeyboardMarkup
     , ''InlineKeyboardButton
