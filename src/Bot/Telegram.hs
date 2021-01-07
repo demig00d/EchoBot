@@ -11,7 +11,7 @@ module Bot.Telegram
 
 import           Control.Monad              (replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Map.Strict            (empty, findWithDefault, insert)
+import           Data.Map.Strict            (empty, findWithDefault)
 import           Text.Read                  (readMaybe)
 
 import           Bot.Types                  as Bot
@@ -98,10 +98,6 @@ handleMessage Model{usersSettings, botSettings} message =
 
     numKeyboard = mkKeyboard $ fmap (\x -> (show x, show x)) ([1..5] :: [Int])
 
-
-setRepeatNumber :: Int -> Int -> Model TelegramEnv -> Model TelegramEnv
-setRepeatNumber userId n model@Model{usersSettings} =
-  model{ usersSettings = insert userId n usersSettings }
 
 handleSendAction :: Model TelegramEnv -> Action -> IO ()
 handleSendAction Model{platformEnv=TelegramEnv{token},..} = \case

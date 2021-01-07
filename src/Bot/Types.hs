@@ -34,6 +34,10 @@ class Show env => Bot env where
 
   extractUpdates :: BotIncome env -> Model env -> Maybe [BotUpdate env]
 
+  setRepeatNumber :: Int -> Int -> Model env -> Model env
+  setRepeatNumber userId n model@Model{usersSettings=usersSettings} =
+    model{ usersSettings = insert userId n usersSettings }
+
 
 data Model env =
   Model
