@@ -4,9 +4,8 @@ module ConfigurationSpec where
 import qualified Data.ByteString.Char8 as S8 (ByteString)
 import           Test.Hspec
 
-import           Bot.Types
+import           Common                (telegramConfig, vkontakteConfig)
 import           Configuration
-import           Logging
 
 
 rawTelegramConfig :: S8.ByteString
@@ -22,22 +21,6 @@ rawTelegramConfig = "{\
   \\"log_level\": \"Debug\"\
 \}"
 
-telegramConfig :: Config
-telegramConfig =
-  Config
-    { cBotSettings =
-       BotSettings
-         { bHelpMessage = "I am bot that can echo your messages."
-         , bRepeatMessage = "Choose number of repeats:"
-         , bNumberOfRepeats = 2
-         }
-    , cPlatformName = "telegram"
-    , cToken = "<token>"
-    , cGroupId  = Nothing
-    , cLogLevel = Debug
-    }
-
-
 rawVKontakteConfig :: S8.ByteString
 rawVKontakteConfig = "{\
   \\"bot_settings\":\
@@ -51,22 +34,6 @@ rawVKontakteConfig = "{\
   \\"group_id\": \"123456\",\
   \\"log_level\": \"Debug\"\
 \}"
-
-vkontakteConfig :: Config
-vkontakteConfig =
-  Config
-    { cBotSettings =
-       BotSettings
-         { bHelpMessage = "I am bot that can echo your messages."
-         , bRepeatMessage = "Choose number of repeats:"
-         , bNumberOfRepeats = 2
-         }
-    , cPlatformName = "vkontakte"
-    , cToken = "<token>"
-    , cGroupId  = Just "123456"
-    , cLogLevel = Debug
-    }
-
 
 rawWrongTelegramConfig :: S8.ByteString
 rawWrongTelegramConfig = "{\

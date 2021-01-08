@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 59eda6c1e80e2e675f62eeb7359e74568074c286ad154649640ad6b236d56fe5
+-- hash: 6fab1f73eb487e430cf24d9aedf3792f4ca4ff7b88f2970be3f34a55190758bc
 
 name:           haskellEchoBot
 version:        0.1.0.0
@@ -89,6 +89,7 @@ test-suite haskellEchoBot-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Common
       ConfigurationSpec
       TelegramSpec
       VKontakteSpec

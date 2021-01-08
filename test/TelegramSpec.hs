@@ -2,35 +2,14 @@
 module TelegramSpec where
 
 import qualified Data.ByteString.Char8 as S8 (putStrLn)
-import           Data.Map.Strict       (empty)
 import           Data.Text             (Text)
 import           Test.Hspec
 
 import           Bot.Telegram
-import           Bot.Types
-import           Logging
+import           Common
 import           Requests
 import           Telegram.API
 import           Telegram.Types
-
-
-model :: Model TelegramEnv
-model =
-  Model
-      { botSettings =
-         BotSettings
-           { bHelpMessage = "I am bot that can echo your messages."
-           , bRepeatMessage = "Choose number of repeats:"
-           , bNumberOfRepeats = 2
-           }
-      , platformEnv =
-         TelegramEnv
-           { token = "<token>"
-           , offset = 0
-           }
-      , usersSettings = empty
-      , logLevel = Debug
-      }
 
 
 formUpdate :: Text -> Update
@@ -91,7 +70,7 @@ sendHelp :: Action
 sendHelp = Send
   SendMessage
     { chatId = 123456789
-    , text   = "I am bot that can echo your messages."
+    , text   = helpMessage
     , replyMarkup = Nothing
     }
 
@@ -99,7 +78,7 @@ sendKeyboard :: Action
 sendKeyboard = Send
   SendMessage
     { chatId = 123456789
-    , text = "Current number of repeats = 2.\nChoose number of repeats:"
+    , text = "Current number of repeats = 2.\n" <> repeatMessage
     , replyMarkup = Just
         (InlineKeyboardMarkup
             [[ InlineKeyboardButton
@@ -139,13 +118,13 @@ spec :: Spec
 spec = do
   describe "Telegram methods:" $ do
     it "get request with 'getUpdates' method from Model of bot" $
-      encodeGetIncome model `shouldBe` getIncomeQuery
+      encodeGetIncome telegramModel `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
-      getAction model helpUpdate `shouldBe` sendHelp
+      getAction telegramModel helpUpdate `shouldBe` sendHelp
 
     it "handle update with '/repeat' command" $
-      getAction model keyboardUpdate `shouldBe` sendKeyboard
+      getAction telegramModel keyboardUpdate `shouldBe` sendKeyboard
 
     it "handle update with ordinary message" $
-      getAction model echoUpdate `shouldBe` copyMessage
+      getAction telegramModel echoUpdate `shouldBe` copyMessage
