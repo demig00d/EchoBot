@@ -6,10 +6,10 @@ module Bot.Telegram
   , encodeGetIncome
   , TelegramEnv(..)
   , Action(..)
-  , handleUpdate
+  , getAction
   ) where
 
-import           Control.Monad              (replicateM_)
+import           Control.Monad              (foldM, replicateM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Map.Strict            (empty, findWithDefault)
 import           Text.Read                  (readMaybe)
@@ -38,7 +38,6 @@ data Action
 
 instance Bot TelegramEnv where
   type BotIncome TelegramEnv = [Update]
-  type BotUpdate TelegramEnv = Update
 
   getIncome model@Model{logLevel} = do
     logInfo' logLevel "Send 'getUpdates' method and wait for response."
@@ -53,23 +52,27 @@ instance Bot TelegramEnv where
       maybe (Left "Failed on getting Update.") Right (rResult resp)
 
 
-  handleIncome model@Model{..} income = do
-    let action = handleUpdate model income
-    model' <- case action of
-      SetRepeatNumber userId n -> do
-        logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
-        pure $ setRepeatNumber userId n model
-      sendAction -> do
-        handleSendAction model sendAction
-        pure model
-    pure $ model'{platformEnv = platformEnv{Bot.Telegram.offset=rUpdateId income + 1}}
+  handleIncome model income =
+    case income of
+      []      -> logInfo' (logLevel model) "Updates are empty." >> pure model
+      updates -> logInfo' (logLevel model) "Handling updates."
+              >> foldM handleUpdate model updates
 
 
-  extractUpdates updates _ = Just updates
+handleUpdate :: Model TelegramEnv -> Update -> IO (Model TelegramEnv)
+handleUpdate model@Model{..} income = do
+  let action = getAction model income
+  model' <- case action of
+    SetRepeatNumber userId n -> do
+      logInfo' logLevel ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+      pure $ setRepeatNumber userId n model
+    sendAction -> do
+      handleSendAction model sendAction
+      pure model
+  pure $ model'{platformEnv = platformEnv{Bot.Telegram.offset=rUpdateId income + 1}}
 
-
-handleUpdate :: Model TelegramEnv -> Update -> Action
-handleUpdate model@Model{..} = \case
+getAction :: Model TelegramEnv -> Update -> Action
+getAction model@Model{..} = \case
   Update{rCallbackQuery = Just (CallbackQuery cdata cFrom)} ->
     case readMaybe cdata :: Maybe Int of
       Just n -> SetRepeatNumber (uId cFrom) n

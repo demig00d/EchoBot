@@ -4,7 +4,7 @@
 module Bot.VKontakte where
 
 import           Control.Applicative        ((<|>))
-import           Control.Monad              (replicateM_)
+import           Control.Monad              (foldM, replicateM_)
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
@@ -45,7 +45,6 @@ data Action
 
 instance Bot VKontakteEnv where
   type BotIncome VKontakteEnv = Response
-  type BotUpdate VKontakteEnv = Update
 
   getIncome model@Model{logLevel} = do
     logInfo' logLevel "Send request to VKontakte server and wait for response."
@@ -59,28 +58,36 @@ instance Bot VKontakteEnv where
         logDebug logLevel response
         pure $ eitherDecode response
 
-  handleIncome model update = do
-    action <- handleUpdate model update
-    case action of
-      SetRepeatNumber userId n -> do
-        logInfo' (logLevel model) ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
-        pure $ setRepeatNumber userId n model
-      sendAction -> do
-        handleSendAction model sendAction
-        pure model
-
-  updateModel model@Model{platformEnv=platformEnv} response =
-    case rTs response of
-      Nothing        -> model
-      Just timestamp ->
-        let platformEnv' = platformEnv{ts = timestamp}
-        in model{platformEnv=platformEnv'}
-
-  extractUpdates income _ = rUpdates income
+  handleIncome model@Model{logLevel} income =
+    case rUpdates income of
+      Nothing      -> logWarning' logLevel "Can't get Updates." >> pure model
+      Just []      -> logInfo' logLevel "Updates are empty."    >> pure model
+      Just updates -> logInfo' logLevel "Handling updates."
+              >> let model' = updateModel model income
+              in foldM handleUpdate model' updates
 
 
-handleUpdate :: Logger m => Model VKontakteEnv -> Update -> m Action
-handleUpdate model update =
+updateModel :: Model VKontakteEnv -> Response -> Model VKontakteEnv
+updateModel model@Model{platformEnv=platformEnv} response =
+  case rTs response of
+    Nothing        -> model
+    Just timestamp ->
+      let platformEnv' = platformEnv{ts = timestamp}
+      in model{platformEnv=platformEnv'}
+
+handleUpdate :: Model VKontakteEnv -> Update -> IO (Model VKontakteEnv)
+handleUpdate model update = do
+  action <- getAction model update
+  case action of
+    SetRepeatNumber userId n -> do
+      logInfo' (logLevel model) ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+      pure $ setRepeatNumber userId n model
+    sendAction -> do
+      handleSendAction model sendAction
+      pure model
+
+getAction :: Logger m => Model VKontakteEnv -> Update -> m Action
+getAction model update =
     case oMessage $ uObject update of
       Just msg -> handleMessage model msg
       _        ->

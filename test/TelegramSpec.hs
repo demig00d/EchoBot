@@ -142,10 +142,10 @@ spec = do
       encodeGetIncome model `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
-      handleUpdate model helpUpdate `shouldBe` sendHelp
+      getAction model helpUpdate `shouldBe` sendHelp
 
     it "handle update with '/repeat' command" $
-      handleUpdate model keyboardUpdate `shouldBe` sendKeyboard
+      getAction model keyboardUpdate `shouldBe` sendKeyboard
 
     it "handle update with ordinary message" $
-      handleUpdate model echoUpdate `shouldBe` copyMessage
+      getAction model echoUpdate `shouldBe` copyMessage

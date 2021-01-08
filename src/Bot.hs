@@ -54,5 +54,5 @@ mainLoop = do
              >> runReaderT mainLoop model
 
     Right incomeWithUpdates -> do
-      model' <- liftIO $ handleIncomes model incomeWithUpdates
+      model' <- liftIO $ handleIncome model incomeWithUpdates
       runReaderT mainLoop model'

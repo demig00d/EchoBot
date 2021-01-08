@@ -214,17 +214,17 @@ spec = do
       encodeGetIncome model `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
-      runIdentity (handleUpdate model (textUpdate "/help")) `shouldBe` replyToHelp
+      runIdentity (getAction model (textUpdate "/help")) `shouldBe` replyToHelp
 
     it "handle update with '/repeat' command" $
-      runIdentity (handleUpdate model (textUpdate "/repeat")) `shouldBe` replyToRepeat
+      runIdentity (getAction model (textUpdate "/repeat")) `shouldBe` replyToRepeat
 
     it "handle update with text" $
       let text = "some text"
-      in runIdentity (handleUpdate model (textUpdate text)) `shouldBe` echoText text
+      in runIdentity (getAction model (textUpdate text)) `shouldBe` echoText text
 
     it "handle update with sticker" $
-      runIdentity (handleUpdate model stickerUpdate) `shouldBe` echoSticker
+      runIdentity (getAction model stickerUpdate) `shouldBe` echoSticker
 
     it "handle update with attachments" $
-      runIdentity (handleUpdate model attachmentsUpdate) `shouldBe` echoAttachments
+      runIdentity (getAction model attachmentsUpdate) `shouldBe` echoAttachments
