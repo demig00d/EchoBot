@@ -4,13 +4,13 @@
 module Logging where
 
 import           Control.Monad              (when)
+import           Data.Aeson.TH              (defaultOptions, deriveJSON)
 import qualified Data.ByteString.Char8      as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import           Data.Functor.Identity
 import           Data.Text                  (Text)
 import           Data.Text.Encoding         (encodeUtf8)
 import           Prelude                    hiding (log)
-
-import           Utils                      (deriveJSON)
 
 
 data Priority
@@ -20,7 +20,7 @@ data Priority
   | Error
   deriving (Show, Eq, Ord)
 
-$(deriveJSON ''Priority)
+$(deriveJSON defaultOptions ''Priority)
 
 
 class ToLogStr msg where
@@ -44,13 +44,21 @@ instance (ToLogStr a, ToLogStr b) => ToLogStr (Either a b) where
     toLogStr (Right b) = toLogStr b
 
 
-log :: ToLogStr msg => Priority -> Priority -> msg -> IO ()
-log msgLvl appLvl msg =
-  when (msgLvl >= appLvl)
-    $ S8.putStrLn
-    $ "[" <> S8.pack (show msgLvl) <> "] " <> toLogStr msg
+class Monad m => Logger m where
+  log  :: ToLogStr msg => Priority -> Priority -> msg -> m ()
 
-logDebug, logInfo, logWarning :: ToLogStr msg => Priority -> msg -> IO ()
+instance Logger IO where
+  log msgLvl appLvl msg =
+    when (msgLvl >= appLvl)
+      $ S8.putStrLn
+      $ "[" <> S8.pack (show msgLvl) <> "] " <> toLogStr msg
+
+-- | Instance for mocking
+instance Logger Identity where
+  log _ _ _ = Identity ()
+
+
+logDebug, logInfo, logWarning :: (Logger m, ToLogStr msg) => Priority -> msg -> m ()
 logDebug   = log Debug
 logInfo    = log Info
 logWarning = log Warning
@@ -60,7 +68,7 @@ logError msg = S8.putStrLn $ "[Error] " <> toLogStr msg
 
 -- | Logging functions that don't require type annotation
 -- for message when OverloadedStrings pragma is enabled.
-logDebug', logInfo', logWarning' :: Priority -> S8.ByteString -> IO ()
+logDebug', logInfo', logWarning' :: Logger m => Priority -> S8.ByteString -> m ()
 logDebug'   = log Debug
 logInfo'    = log Info
 logWarning' = log Warning

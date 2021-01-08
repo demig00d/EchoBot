@@ -9,7 +9,7 @@ import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
 import           Data.Functor               ((<&>))
-import           Data.Map.Strict            (empty, findWithDefault, insert)
+import           Data.Map.Strict            (empty, findWithDefault)
 import           Data.Text                  as T (Text, intercalate)
 
 import           Bot.Types
@@ -35,20 +35,22 @@ data VKontakteEnv =
     } deriving Show
 
 
+-- Auxiliary types for update handling
+data Action
+  = SetRepeatNumber Int Int
+  | ReplyToCommand Method
+  | SendEcho Int Method
+  | DoNothing
+  deriving (Show, Eq)
+
 instance Bot VKontakteEnv where
   type BotIncome VKontakteEnv = Response
   type BotUpdate VKontakteEnv = Update
 
-  getIncome Model{platformEnv, logLevel} = do
-    let method = UpdatesGet
-          { uServer = server platformEnv
-          , uKey = key platformEnv
-          , uAct = "a_check"
-          , uWait = 25
-          , uTs = ts platformEnv
-          }
+  getIncome model@Model{logLevel} = do
     logInfo' logLevel "Send request to VKontakte server and wait for response."
-    let request = VKontakte.encodeRequest (logDebug logLevel) method
+    let request = encodeGetIncome model
+
     eResponse <- sendPost request
     case eResponse of
       Left msg       -> pure $ Left msg
@@ -57,17 +59,15 @@ instance Bot VKontakteEnv where
         logDebug logLevel response
         pure $ eitherDecode response
 
-  handleIncome model update =
-    case oMessage $ uObject update of
-      Just msg -> handleMessage model msg
-      _        ->
-        if uType update == "message_reply"
-           then do
-             logInfo' (logLevel model) "No messages from user."
-             pure model
-           else do
-             logWarning' (logLevel model) "There is no message in Update."
-             pure model
+  handleIncome model update = do
+    action <- handleUpdate model update
+    case action of
+      SetRepeatNumber userId n -> do
+        logInfo' (logLevel model) ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+        pure $ setRepeatNumber userId n model
+      sendAction -> do
+        handleSendAction model sendAction
+        pure model
 
   updateModel model@Model{platformEnv=platformEnv} response =
     case rTs response of
@@ -79,17 +79,56 @@ instance Bot VKontakteEnv where
   extractUpdates income _ = rUpdates income
 
 
-handleMessage :: Model VKontakteEnv -> Message -> IO (Model VKontakteEnv)
-handleMessage model@Model{..} Message{..} =
+handleUpdate :: Logger m => Model VKontakteEnv -> Update -> m Action
+handleUpdate model update =
+    case oMessage $ uObject update of
+      Just msg -> handleMessage model msg
+      _        ->
+        if uType update == "message_reply"
+           then do
+             logInfo' (logLevel model) "No messages from user."
+             pure DoNothing
+           else do
+             logWarning' (logLevel model) "There is no message in Update."
+             pure DoNothing
+
+
+handleSendAction :: Model VKontakteEnv -> Action  -> IO ()
+handleSendAction Model{logLevel} = \case
+  ReplyToCommand method@MessagesSend{} -> do
+    logInfo' logLevel "Send request with 'messages.send' method to reply to user's command."
+    let request = VKontakte.encodeRequest (logDebug logLevel) method
+    result <- sendPost request
+    case result of
+      Left msg   -> logWarning logLevel msg
+      Right resp -> logInfo' logLevel "Reply to command has been sent."
+                 >> logDebug logLevel ("\n" <> resp)
+  SendEcho echoNumber method@MessagesSend{} -> do
+      logInfo logLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
+      replicateM_ echoNumber $ do
+        let request = VKontakte.encodeRequest (logDebug logLevel) method
+        result <- sendPost request
+        case result of
+           Left msg   -> logWarning logLevel msg
+           Right resp -> logInfo' logLevel "Message has been echoed."
+                      >> logDebug logLevel ("\n" <> resp)
+
+
+  _ -> pure ()
+
+
+
+handleMessage :: Logger m => Model VKontakteEnv -> Message -> m Action
+handleMessage Model{..} Message{..} =
   case mText of
-    "/1" -> setRepeatsNumber 1 model
-    "/2" -> setRepeatsNumber 2 model
-    "/3" -> setRepeatsNumber 3 model
-    "/4" -> setRepeatsNumber 4 model
-    "/5" -> setRepeatsNumber 5 model
-    "/help"   -> sendMethod messagesSend{mMessage=Just bHelpMessage}
-    "/repeat" -> sendMethod messagesSend{mMessage=Just repeatMessage
-                                        ,mKeyboard=Just $ encode numKeyboard}
+    "/1" -> pure $ SetRepeatNumber mFromId 1
+    "/2" -> pure $ SetRepeatNumber mFromId 2
+    "/3" -> pure $ SetRepeatNumber mFromId 3
+    "/4" -> pure $ SetRepeatNumber mFromId 4
+    "/5" -> pure $ SetRepeatNumber mFromId 5
+    "/help"   -> pure $ ReplyToCommand messagesSend{mMessage=Just bHelpMessage}
+    "/repeat" -> pure $ ReplyToCommand messagesSend{mMessage=Just repeatMessage
+                                             ,mKeyboard=Just $ encode numKeyboard}
     _         -> do
       let attachment =
               fmap toAttachmentFormat mAttachments
@@ -97,9 +136,10 @@ handleMessage model@Model{..} Message{..} =
               & sequence
              <&> T.intercalate ","
       logInfo logLevel ("Message of user '" <> gshow mFromId <> "' would be echoed " <> nTimes echoNumber <> ".")
-      sendEcho echoNumber messagesSend{mMessage=Just mText
-                                      ,mStickerId=getStickerId mAttachments
-                                      ,mAttachment=attachment}
+      pure $ SendEcho echoNumber
+               messagesSend{mMessage=Just mText
+                           ,mStickerId=getStickerId mAttachments
+                           ,mAttachment=attachment}
   where
     BotSettings{..}  = botSettings
     VKontakteEnv{..} = platformEnv
@@ -116,36 +156,6 @@ handleMessage model@Model{..} Message{..} =
         }
 
     echoNumber = findWithDefault bNumberOfRepeats mFromId usersSettings
-
-    setRepeatsNumber number model' =
-      logInfo' logLevel ("Number of repeats for user: " <> gshow mFromId <> " changed to " <> gshow echoNumber <> ".")
-      >> pure model'{usersSettings=insert mFromId number usersSettings}
-
-
-    sendMethod :: Method -> IO (Model VKontakteEnv)
-    sendMethod  m = do
-      logInfo' logLevel "Send request with 'messages.send' method to reply to user's command."
-      let request = VKontakte.encodeRequest (logDebug logLevel) m
-      result <- sendPost request
-      case result of
-        Left msg   -> logWarning logLevel msg
-        Right resp -> logInfo' logLevel "Reply to command has been sent."
-                   >> logDebug logLevel ("\n" <> resp)
-
-      pure model
-
-    sendEcho :: Int -> Method -> IO (Model VKontakteEnv)
-    sendEcho num m = do
-      logInfo logLevel ("Send request with 'messages.send' method " <> nTimes echoNumber <> " to echo user's message.")
-      replicateM_ num $ do
-        let request = VKontakte.encodeRequest (logDebug logLevel) m
-        result <- sendPost request
-        case result of
-           Left msg   -> logWarning logLevel msg
-           Right resp -> logInfo' logLevel "Message has been echoed."
-                      >> logDebug logLevel ("\n" <> resp)
-
-      pure model
 
     messagesSend =
       MessagesSend
@@ -186,7 +196,7 @@ getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
   pure $ do
     rawResponse' <- rawResponse
     resp <- eitherDecode rawResponse'
-    skt <- maybe (Left "Failed on getting Update.") Right (rResponse resp)
+    skt  <- maybe (Left "Failed on getting Update.") Right (rResponse resp)
     pure $ model skt
   where
     model serverKeyTs = Model
@@ -204,3 +214,15 @@ getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
         , ts      = sTs
         }
 
+
+encodeGetIncome :: Model VKontakteEnv -> Requests.Handler
+encodeGetIncome Model{logLevel, platformEnv} =
+  VKontakte.encodeRequest (logDebug logLevel) method
+    where
+      method = UpdatesGet
+          { uServer = server platformEnv
+          , uKey = key platformEnv
+          , uAct = "a_check"
+          , uWait = 25
+          , uTs = ts platformEnv
+          }

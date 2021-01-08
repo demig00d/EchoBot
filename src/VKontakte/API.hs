@@ -12,10 +12,9 @@ import           Data.Text                  (Text, cons)
 import           Prelude                    hiding (log)
 
 import           Data.UrlEncoded            (ToUrlEncoded, toUrlEncoded)
-import           Requests                   as Requests (Handler (..),
-                                                         hContentType,
-                                                         urlEncode)
-import           Utils                      (deriveManyJSON)
+import           Requests                   (Handler (..), hContentType,
+                                             urlEncode)
+import           Utils                      (deriveManyJSON, dropPrefixOptions)
 
 
 apiUrl :: String
@@ -45,24 +44,24 @@ data Method
       , mStickerId   :: Maybe Int
       , mKeyboard    :: Maybe L8.ByteString
       , mV           :: String
-      } deriving (Data, ToUrlEncoded)
+      } deriving (Data, ToUrlEncoded, Show ,Eq)
 
 
-instance Show Method where
-  show = helper . show . toConstr where
-    helper []     = []
-    helper (x:xs) = toLower x : helper2 xs
-    helper2 a | null a = []
-              | isUpper (head a) = '.' : toLower (head a) : tail a
-              | otherwise = head a : helper2 (tail a)
+getName :: Method -> String
+getName = helper . show . toConstr where
+  helper []     = []
+  helper (x:xs) = toLower x : helper2 xs
+  helper2 a | null a = []
+            | isUpper (head a) = '.' : toLower (head a) : tail a
+            | otherwise = head a : helper2 (tail a)
 
 
 encodeRequest :: (S8.ByteString -> IO ()) -> Method -> Requests.Handler
 encodeRequest logger = \case
-  m@UpdatesGet{uServer=uServer} ->
-       encode uServer m{uServer=""} -- Omit 'server' field in request body
-                                    -- because its value is already contained inside URL
-  m -> encode (apiUrl <> show m) m
+  m@UpdatesGet{uServer=server} ->
+       encode server m{uServer=""} -- Omit 'server' field in request body
+                                   -- because its value is already contained inside URL
+  m -> encode (apiUrl <> getName m) m
   where
     encode url body =
       Requests.Handler
@@ -97,7 +96,7 @@ newtype Payload =
     }
 
 
-$(deriveManyJSON
+$(deriveManyJSON dropPrefixOptions
     [ ''Keyboard
     , ''Button
     , ''Action

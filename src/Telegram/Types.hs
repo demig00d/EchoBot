@@ -1,9 +1,11 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE TemplateHaskell       #-}
 module Telegram.Types where
 
 import           Data.Text (Text)
 
-import           Utils     (deriveManyJSON)
+import           Utils     (deriveManyJSON, dropPrefixOptions)
+
 
 data Chat =
   Chat
@@ -59,7 +61,7 @@ data User =
     , uLanguageCode :: Maybe Text
     }
 
-$(deriveManyJSON
+$(deriveManyJSON dropPrefixOptions
     [ ''Chat
     , ''Message
     , ''CallbackQuery

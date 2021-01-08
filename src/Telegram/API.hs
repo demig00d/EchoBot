@@ -14,7 +14,7 @@ import           Prelude                    hiding (log)
 
 import           Requests                   (Handler (..), hContentType,
                                              sendGet)
-import           Utils                      (deriveManyJSON)
+import           Utils                      (deriveManyJSON, standartOptions)
 
 
 apiUrl :: String
@@ -35,30 +35,30 @@ data Method
       , fromChatId :: Int
       , messageId  :: Int
       }
-  deriving (Data, Eq)
+  deriving (Data, Show, Eq)
 
 newtype InlineKeyboardMarkup =
   InlineKeyboardMarkup
-    { rInlineKeyboard :: [[InlineKeyboardButton]]
-    } deriving (Data, Eq)
+    { inlineKeyboard :: [[InlineKeyboardButton]]
+    } deriving (Data, Show, Eq)
 
 data InlineKeyboardButton =
   InlineKeyboardButton
-    { iText         :: String
-    , iCallbackData :: String
-    } deriving (Data, Eq)
+    { text         :: String
+    , callbackData :: String
+    } deriving (Data, Show, Eq)
 
 
-$(deriveManyJSON
+$(deriveManyJSON standartOptions
     [ ''Method
     , ''InlineKeyboardMarkup
     , ''InlineKeyboardButton
     ])
 
-instance Show Method where
-  show = helper . show . toConstr where
-    helper []     = []
-    helper (x:xs) = toLower x : xs
+getName :: Method -> String
+getName = helper . show . toConstr where
+  helper []     = []
+  helper (x:xs) = toLower x : xs
 
 
 mkKeyboard :: [(String, String)] -> InlineKeyboardMarkup
@@ -77,7 +77,7 @@ getMe token = do
 
 encodeRequest
   :: (S8.ByteString -> IO ()) -> String -> Method -> Requests.Handler
-encodeRequest logger token method = encode (show method) method
+encodeRequest logger token method = encode (getName method) method
   where
     encode methodName body =
       let url  = apiUrl <> token <> ('/' : methodName)

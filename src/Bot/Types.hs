@@ -9,7 +9,7 @@ import           Data.Map.Strict
 import           Data.Text                  (Text)
 
 import           Logging                    (Priority, logInfo, logWarning)
-import           Utils                      (deriveManyJSON)
+import           Utils                      (deriveManyJSON, dropPrefixOptions)
 
 
 class Show env => Bot env where
@@ -33,6 +33,10 @@ class Show env => Bot env where
   updateModel = const
 
   extractUpdates :: BotIncome env -> Model env -> Maybe [BotUpdate env]
+
+  setRepeatNumber :: Int -> Int -> Model env -> Model env
+  setRepeatNumber userId n model@Model{usersSettings=usersSettings} =
+    model{ usersSettings = insert userId n usersSettings }
 
 
 data Model env =
@@ -62,7 +66,7 @@ data Config =
     , cLogLevel     :: Priority
     } deriving (Show, Eq)
 
-$(deriveManyJSON
+$(deriveManyJSON dropPrefixOptions
     [''Config
     ,''BotSettings
     ])
