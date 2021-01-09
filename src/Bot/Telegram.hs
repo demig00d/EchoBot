@@ -7,6 +7,7 @@ module Bot.Telegram
   , TelegramEnv(..)
   , Action(..)
   , getAction
+  , getMe
   ) where
 
 import           Control.Monad              (foldM, replicateM_)
@@ -26,7 +27,7 @@ data TelegramEnv =
   TelegramEnv
     { token  :: String
     , offset :: Int
-    } deriving Show
+    } deriving (Show, Eq)
 
 
 -- Auxiliary types for update handling
@@ -135,10 +136,14 @@ handleSendAction Model{platformEnv=TelegramEnv{token},..} = \case
 
 
 -- | Check request environment and try to get Model from Config.
-getModel :: Config -> IO (Either L8.ByteString (Model TelegramEnv))
-getModel Config{..} = do
+getModel ::
+  Logger m
+  => Config
+  -> (String -> m (Either L8.ByteString L8.ByteString))
+  -> m (Either L8.ByteString (Model TelegramEnv))
+getModel Config{..} checkMethod = do
   logInfo' cLogLevel "Send request with 'getMe' method to check token."
-  response <- getMe cToken
+  response <- checkMethod cToken
   case response of
     Left msg  -> do
       logDebug cLogLevel ("\n" <> msg)

@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TelegramSpec where
 
-import qualified Data.ByteString.Char8 as S8 (putStrLn)
-import           Data.Text             (Text)
+import qualified Data.ByteString.Char8      as S8 (putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
+import           Data.Functor.Identity
+import           Data.Text                  (Text)
 import           Test.Hspec
 
 import           Bot.Telegram
@@ -43,6 +45,28 @@ formUpdate t =
              , mText = Just t
              })
       , rCallbackQuery = Nothing
+      , rData = Nothing
+      , rEditedMessage = Nothing
+      }
+
+payloadUpdate :: String -> Update
+payloadUpdate n =
+    Update
+      { rUpdateId = 783724748
+      , rMessage = Nothing
+      , rCallbackQuery =
+        Just CallbackQuery
+          { cData = n
+          , cFrom =
+              User
+                { uId = 123456789
+                , uIsBot = False
+                , uFirstName = "UserName"
+                , uLastName = Nothing
+                , uUsername = Just "Nickname"
+                , uLanguageCode = Just "ru"
+                }
+          }
       , rData = Nothing
       , rEditedMessage = Nothing
       }
@@ -113,11 +137,16 @@ copyMessage = Send
     , messageId  = 100
     }
 
+mockMethod :: String -> Identity (Either L8.ByteString L8.ByteString)
+mockMethod _ = Identity $ Right ""
 
 spec :: Spec
 spec = do
   describe "Telegram methods:" $ do
-    it "get request with 'getUpdates' method from Model of bot" $
+    it "obtain model from config" $
+      runIdentity (getModel telegramConfig mockMethod) `shouldBe` Right telegramModel
+
+    it "form request with 'getUpdates' method from Model of bot" $
       encodeGetIncome telegramModel `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
@@ -128,3 +157,7 @@ spec = do
 
     it "handle update with ordinary message" $
       getAction telegramModel echoUpdate `shouldBe` copyMessage
+
+    it "handle update with payload" $
+      let n = 3
+      in getAction telegramModel (payloadUpdate $ show n) `shouldBe` SetRepeatNumber 123456789 n

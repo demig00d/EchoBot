@@ -28,7 +28,7 @@ data Model env =
     , platformEnv   :: env
     , usersSettings :: UserSettings
     , logLevel      :: Priority
-    } deriving Show
+    } deriving (Show, Eq)
 
 data BotSettings =
   BotSettings

@@ -1,14 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module VKontakteSpec where
 
-import qualified Data.ByteString.Char8 as S8 (putStrLn)
+import qualified Data.ByteString.Char8      as S8 (ByteString, putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Functor.Identity
-import           Data.Text             (Text)
+import           Data.Text                  (Text)
 import           Test.Hspec
 
 import           Bot.VKontakte
 import           Common
 import           Requests
+import           Utils                      (gshow)
 import           VKontakte.API
 import           VKontakte.Types
 
@@ -112,7 +114,7 @@ replyToHelp :: Bot.VKontakte.Action
 replyToHelp = ReplyToCommand $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just helpMessage
@@ -126,7 +128,7 @@ replyToRepeat :: Bot.VKontakte.Action
 replyToRepeat = ReplyToCommand $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just $ "Current number of repeats = 2.\n" <> repeatMessage
@@ -140,7 +142,7 @@ echoText :: Text -> Bot.VKontakte.Action
 echoText text = SendEcho 2
       (MessagesSend
           {mAccessToken = "<token>"
-          , mGroupId = "923456789"
+          , mGroupId = Common.groupId
           , mUserId = 12345678
           , mRandomId = 0
           , mMessage = Just text
@@ -155,7 +157,7 @@ echoSticker :: Bot.VKontakte.Action
 echoSticker = SendEcho 2 $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just ""
@@ -169,7 +171,7 @@ echoAttachments :: Bot.VKontakte.Action
 echoAttachments = SendEcho 2 $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just ""
@@ -180,9 +182,26 @@ echoAttachments = SendEcho 2 $
     }
 
 
+mockMethod ::
+  String -> String -> String
+  -> (S8.ByteString -> IO ())
+  -> Identity (Either L8.ByteString L8.ByteString)
+mockMethod _ _ _ _  = Identity $
+  Right "{\
+    \\"response\": {\
+        \\"ts\": \"3\",\
+        \\"key\": \"46567asdfgh\",\
+        \\"server\": \"https://server.com\"\
+    \}\
+\}"
+
+
 spec :: Spec
 spec = do
   describe "VKontakte methods:" $ do
+    it "obtain model from config" $
+      runIdentity (getModel vkontakteConfig mockMethod) `shouldBe` Right vkontakteModel
+
     it "form request to get updates" $
       encodeGetIncome vkontakteModel `shouldBe` getIncomeQuery
 
@@ -201,3 +220,7 @@ spec = do
 
     it "handle update with attachments" $
       runIdentity (getAction vkontakteModel attachmentsUpdate) `shouldBe` echoAttachments
+
+    it "handle update with payload" $
+      let n = 3
+      in runIdentity (getAction vkontakteModel (textUpdate $ "/" <> gshow n)) `shouldBe` SetRepeatNumber 12345678 n

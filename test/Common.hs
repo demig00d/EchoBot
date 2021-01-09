@@ -2,28 +2,43 @@
 module Common
   ( helpMessage
   , repeatMessage
+  , repeatsNumber
+  , repeats
   --
   , telegramModel
   , vkontakteModel
   --
   , telegramConfig
   , vkontakteConfig
+  --
+  , Common.groupId
   )where
 
 import           Bot.Types
 import           Data.Map.Strict (empty)
+import           Data.String     (IsString)
 import           Data.Text       (Text)
 
 import           Bot.Telegram    (TelegramEnv (..))
 import           Bot.VKontakte   (VKontakteEnv (..))
 import           Logging         (Priority (..))
+import           Utils           (gshow)
 
 
-helpMessage :: Text
+helpMessage :: IsString a => a
 helpMessage = "I am bot that can echo your messages."
 
-repeatMessage :: Text
+repeatMessage :: IsString a => a
 repeatMessage = "Choose number of repeats:"
+
+repeatsNumber :: Int
+repeatsNumber = 2
+
+repeats :: IsString a => a
+repeats = gshow repeatsNumber
+
+groupId :: IsString a => a
+groupId = "923456789"
 
 model :: env -> Model env
 model env =
@@ -32,7 +47,7 @@ model env =
          BotSettings
            { bHelpMessage = helpMessage
            , bRepeatMessage = repeatMessage
-           , bNumberOfRepeats = 2
+           , bNumberOfRepeats = repeatsNumber
            }
       , platformEnv = env
       , usersSettings = empty
@@ -46,7 +61,7 @@ vkontakteModel :: Model VKontakteEnv
 vkontakteModel = model
   VKontakteEnv
     { token   = "<token>"
-    , groupId = "923456789"
+    , groupId = Common.groupId
     , server  = "https://server.com"
     , key     = "46567asdfgh"
     , ts      = "3"
@@ -59,7 +74,7 @@ telegramConfig =
        BotSettings
          { bHelpMessage = helpMessage
          , bRepeatMessage = repeatMessage
-         , bNumberOfRepeats = 2
+         , bNumberOfRepeats = repeatsNumber
          }
     , cPlatformName = "telegram"
     , cToken = "<token>"
@@ -74,10 +89,10 @@ vkontakteConfig =
        BotSettings
          { bHelpMessage = helpMessage
          , bRepeatMessage = repeatMessage
-         , bNumberOfRepeats = 2
+         , bNumberOfRepeats = repeatsNumber
          }
     , cPlatformName = "vkontakte"
     , cToken = "<token>"
-    , cGroupId  = Just "123456"
+    , cGroupId  = Just Common.groupId
     , cLogLevel = Debug
     }

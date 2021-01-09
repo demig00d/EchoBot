@@ -4,7 +4,7 @@ module ConfigurationSpec where
 import qualified Data.ByteString.Char8 as S8 (ByteString)
 import           Test.Hspec
 
-import           Common                (telegramConfig, vkontakteConfig)
+import           Common
 import           Configuration
 
 
@@ -12,9 +12,9 @@ rawTelegramConfig :: S8.ByteString
 rawTelegramConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"Telegram\",\
   \\"token\": \"<token>\",\
@@ -25,13 +25,13 @@ rawVKontakteConfig :: S8.ByteString
 rawVKontakteConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"VKontakte\",\
   \\"token\": \"<token>\",\
-  \\"group_id\": \"123456\",\
+  \\"group_id\": \"" <> groupId <> "\",\
   \\"log_level\": \"Debug\"\
 \}"
 
@@ -39,9 +39,9 @@ rawWrongTelegramConfig :: S8.ByteString
 rawWrongTelegramConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"Telegram\",\
   \\"log_level\": \"Debug\"\
@@ -52,9 +52,9 @@ rawWrongVKontakteConfig :: S8.ByteString
 rawWrongVKontakteConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"VKontakte\",\
   \\"token\": \"<token>\",\

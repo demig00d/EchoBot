@@ -1,11 +1,19 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
-module Bot.VKontakte where
+module Bot.VKontakte
+  ( getModel
+  , encodeGetIncome
+  , VKontakteEnv(..)
+  , Action(..)
+  , getAction
+  , groupsGetLongPollServer
+  ) where
 
 import           Control.Applicative        ((<|>))
 import           Control.Monad              (foldM, replicateM_)
 import           Data.Aeson                 (encode)
+import qualified Data.ByteString.Char8      as S8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
 import           Data.Functor               ((<&>))
@@ -17,7 +25,7 @@ import           Logging
 import           Requests
 import           Utils
 import           VKontakte.API              (Keyboard (..), Method (..),
-                                             mkButton)
+                                             groupsGetLongPollServer, mkButton)
 import qualified VKontakte.API              as VKontakte (encodeRequest)
 import           VKontakte.Types
 
@@ -32,7 +40,7 @@ data VKontakteEnv =
     , server  :: String
     , key     :: String
     , ts      :: String
-    } deriving Show
+    } deriving (Show, Eq)
 
 
 -- Auxiliary types for update handling
@@ -188,16 +196,16 @@ toAttachmentFormat Attachment{..} =
     helper Media{..} = aType <> gshow mOwnerId <> "_" <> gshow mId <> maybe "" ("_" <>) mAccessKey
 
 
-getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
-getModel Config{cGroupId = Nothing} = pure $ Left "group_id is required for VKontakte."
-getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
-  let request = VKontakte.encodeRequest (logDebug cLogLevel) $
-                    GroupsGetLongPollServer
-                        { gAccessToken = cToken
-                        , gGroupId = groupId
-                        , gV = apiVersion
-                        }
-  rawResponse <- sendPost request
+getModel ::
+  Logger m => Config
+  -> (String -> String -> String
+  -> (S8.ByteString -> IO ())
+  -> m (Either L8.ByteString L8.ByteString))
+  -> m (Either L8.ByteString (Model VKontakteEnv))
+getModel Config{cGroupId = Nothing} _checkMethod = pure $ Left "group_id is required for VKontakte."
+getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} checkMethod = do
+
+  rawResponse <- checkMethod groupId cToken apiVersion (logDebug cLogLevel)
 
   logDebug cLogLevel rawResponse
   pure $ do
