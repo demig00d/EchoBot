@@ -25,12 +25,12 @@ startBot path = do
       >> logDebug cLogLevel (prettyShow cfg)
       >> logInfo  cLogLevel "Check request environment and try to get Model from Config."
       >> case cPlatformName of
-        "telegram"  -> Telegram.getModel cfg
+        "telegram"  -> Telegram.getModel cfg getMe
                     >>= either logError
                          (\model -> logInfo  cLogLevel "Model has been obtained."
                                  >> logDebug cLogLevel (prettyShow model)
                                  >> runReaderT mainLoop model)
-        "vkontakte" -> VKontakte.getModel cfg
+        "vkontakte" -> VKontakte.getModel cfg groupsGetLongPollServer
                     >>= either logError
                          (\model -> logInfo  cLogLevel "Model has been obtained."
                                  >> logDebug cLogLevel (prettyShow model)
@@ -54,5 +54,5 @@ mainLoop = do
              >> runReaderT mainLoop model
 
     Right incomeWithUpdates -> do
-      model' <- liftIO $ handleIncomes model incomeWithUpdates
+      model' <- liftIO $ handleIncome model incomeWithUpdates
       runReaderT mainLoop model'

@@ -1,36 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TelegramSpec where
 
-import qualified Data.ByteString.Char8 as S8 (putStrLn)
-import           Data.Map.Strict       (empty)
-import           Data.Text             (Text)
+import qualified Data.ByteString.Char8      as S8 (putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
+import           Data.Functor.Identity
+import           Data.Text                  (Text)
 import           Test.Hspec
 
 import           Bot.Telegram
-import           Bot.Types
-import           Logging
+import           Common
 import           Requests
 import           Telegram.API
 import           Telegram.Types
-
-
-model :: Model TelegramEnv
-model =
-  Model
-      { botSettings =
-         BotSettings
-           { bHelpMessage = "I am bot that can echo your messages."
-           , bRepeatMessage = "Choose number of repeats:"
-           , bNumberOfRepeats = 2
-           }
-      , platformEnv =
-         TelegramEnv
-           { token = "<token>"
-           , offset = 0
-           }
-      , usersSettings = empty
-      , logLevel = Debug
-      }
 
 
 formUpdate :: Text -> Update
@@ -68,6 +49,28 @@ formUpdate t =
       , rEditedMessage = Nothing
       }
 
+payloadUpdate :: String -> Update
+payloadUpdate n =
+    Update
+      { rUpdateId = 783724748
+      , rMessage = Nothing
+      , rCallbackQuery =
+        Just CallbackQuery
+          { cData = n
+          , cFrom =
+              User
+                { uId = 123456789
+                , uIsBot = False
+                , uFirstName = "UserName"
+                , uLastName = Nothing
+                , uUsername = Just "Nickname"
+                , uLanguageCode = Just "ru"
+                }
+          }
+      , rData = Nothing
+      , rEditedMessage = Nothing
+      }
+
 helpUpdate :: Update
 helpUpdate  = formUpdate "/help"
 
@@ -91,7 +94,7 @@ sendHelp :: Action
 sendHelp = Send
   SendMessage
     { chatId = 123456789
-    , text   = "I am bot that can echo your messages."
+    , text   = helpMessage
     , replyMarkup = Nothing
     }
 
@@ -99,7 +102,7 @@ sendKeyboard :: Action
 sendKeyboard = Send
   SendMessage
     { chatId = 123456789
-    , text = "Current number of repeats = 2.\nChoose number of repeats:"
+    , text = "Current number of repeats = 2.\n" <> repeatMessage
     , replyMarkup = Just
         (InlineKeyboardMarkup
             [[ InlineKeyboardButton
@@ -134,18 +137,27 @@ copyMessage = Send
     , messageId  = 100
     }
 
+mockMethod :: String -> Identity (Either L8.ByteString L8.ByteString)
+mockMethod _ = Identity $ Right ""
 
 spec :: Spec
 spec = do
   describe "Telegram methods:" $ do
-    it "get request with 'getUpdates' method from Model of bot" $
-      encodeGetIncome model `shouldBe` getIncomeQuery
+    it "obtain model from config" $
+      runIdentity (getModel telegramConfig mockMethod) `shouldBe` Right telegramModel
+
+    it "form request with 'getUpdates' method from Model of bot" $
+      encodeGetIncome telegramModel `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
-      handleUpdate model helpUpdate `shouldBe` sendHelp
+      getAction telegramModel helpUpdate `shouldBe` sendHelp
 
     it "handle update with '/repeat' command" $
-      handleUpdate model keyboardUpdate `shouldBe` sendKeyboard
+      getAction telegramModel keyboardUpdate `shouldBe` sendKeyboard
 
     it "handle update with ordinary message" $
-      handleUpdate model echoUpdate `shouldBe` copyMessage
+      getAction telegramModel echoUpdate `shouldBe` copyMessage
+
+    it "handle update with payload" $
+      let n = 3
+      in getAction telegramModel (payloadUpdate $ show n) `shouldBe` SetRepeatNumber 123456789 n

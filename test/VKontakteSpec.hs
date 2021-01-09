@@ -1,40 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 module VKontakteSpec where
 
-import qualified Data.ByteString.Char8 as S8 (putStrLn)
+import qualified Data.ByteString.Char8      as S8 (ByteString, putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Functor.Identity
-import           Data.Map.Strict       (empty)
-import           Data.Text             (Text)
+import           Data.Text                  (Text)
 import           Test.Hspec
 
-import           Bot.Types
 import           Bot.VKontakte
-import           Logging
+import           Common
 import           Requests
+import           Utils                      (gshow)
 import           VKontakte.API
 import           VKontakte.Types
-
-
-model :: Model VKontakteEnv
-model =
-  Model
-      { botSettings =
-         BotSettings
-           { bHelpMessage = "I am bot that can echo your messages."
-           , bRepeatMessage = "Choose number of repeats:"
-           , bNumberOfRepeats = 2
-           }
-      , platformEnv =
-         VKontakteEnv
-           { token   = "<token>"
-           , groupId = "923456789"
-           , server  = "https://server.com"
-           , key     = "46567asdfgh"
-           , ts      = "3"
-           }
-      , usersSettings = empty
-      , logLevel = Debug
-      }
 
 
 getIncomeQuery :: Requests.Handler
@@ -51,8 +29,7 @@ textUpdate text = Update
     { uObject =
         Object
           { oMessage =
-             Just $
-               Message
+             Just Message
                  { mFromId = 12345678
                  , mText = text
                  , mRandomId = 0
@@ -68,8 +45,7 @@ stickerUpdate = Update
     { uObject =
       Object
         { oMessage =
-           Just $
-             Message
+           Just Message
                { mFromId = 12345678
                , mText = ""
                , mRandomId = 0
@@ -94,8 +70,7 @@ attachmentsUpdate = Update
   { uObject =
       Object
         { oMessage =
-            Just $
-              Message
+            Just Message
                 { mFromId = 12345678
                 , mText = ""
                 , mRandomId = 0
@@ -139,10 +114,10 @@ replyToHelp :: Bot.VKontakte.Action
 replyToHelp = ReplyToCommand $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
-    , mMessage = Just "I am bot that can echo your messages."
+    , mMessage = Just helpMessage
     , mAttachment = Nothing
     , mStickerId = Nothing
     , mKeyboard = Nothing
@@ -153,10 +128,10 @@ replyToRepeat :: Bot.VKontakte.Action
 replyToRepeat = ReplyToCommand $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
-    , mMessage = Just "Current number of repeats = 2.\nChoose number of repeats:"
+    , mMessage = Just $ "Current number of repeats = 2.\n" <> repeatMessage
     , mAttachment = Nothing
     , mStickerId = Nothing
     , mKeyboard = Just "{\"one_time\":true,\"buttons\":[[{\"action\":{\"type\":\"text\",\"payload\":{\"button\":\"/1\"},\"label\":\"/1\"}},{\"action\":{\"type\":\"text\",\"payload\":{\"button\":\"/2\"},\"label\":\"/2\"}},{\"action\":{\"type\":\"text\",\"payload\":{\"button\":\"/3\"},\"label\":\"/3\"}},{\"action\":{\"type\":\"text\",\"payload\":{\"button\":\"/4\"},\"label\":\"/4\"}},{\"action\":{\"type\":\"text\",\"payload\":{\"button\":\"/5\"},\"label\":\"/5\"}}]]}"
@@ -167,7 +142,7 @@ echoText :: Text -> Bot.VKontakte.Action
 echoText text = SendEcho 2
       (MessagesSend
           {mAccessToken = "<token>"
-          , mGroupId = "923456789"
+          , mGroupId = Common.groupId
           , mUserId = 12345678
           , mRandomId = 0
           , mMessage = Just text
@@ -182,7 +157,7 @@ echoSticker :: Bot.VKontakte.Action
 echoSticker = SendEcho 2 $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just ""
@@ -196,7 +171,7 @@ echoAttachments :: Bot.VKontakte.Action
 echoAttachments = SendEcho 2 $
   MessagesSend
     { mAccessToken = "<token>"
-    , mGroupId = "923456789"
+    , mGroupId = Common.groupId
     , mUserId = 12345678
     , mRandomId = 0
     , mMessage = Just ""
@@ -207,24 +182,45 @@ echoAttachments = SendEcho 2 $
     }
 
 
+mockMethod ::
+  String -> String -> String
+  -> (S8.ByteString -> IO ())
+  -> Identity (Either L8.ByteString L8.ByteString)
+mockMethod _ _ _ _  = Identity $
+  Right "{\
+    \\"response\": {\
+        \\"ts\": \"3\",\
+        \\"key\": \"46567asdfgh\",\
+        \\"server\": \"https://server.com\"\
+    \}\
+\}"
+
+
 spec :: Spec
 spec = do
   describe "VKontakte methods:" $ do
+    it "obtain model from config" $
+      runIdentity (getModel vkontakteConfig mockMethod) `shouldBe` Right vkontakteModel
+
     it "form request to get updates" $
-      encodeGetIncome model `shouldBe` getIncomeQuery
+      encodeGetIncome vkontakteModel `shouldBe` getIncomeQuery
 
     it "handle update with '/help' command" $
-      runIdentity (handleUpdate model (textUpdate "/help")) `shouldBe` replyToHelp
+      runIdentity (getAction vkontakteModel (textUpdate "/help")) `shouldBe` replyToHelp
 
     it "handle update with '/repeat' command" $
-      runIdentity (handleUpdate model (textUpdate "/repeat")) `shouldBe` replyToRepeat
+      runIdentity (getAction vkontakteModel (textUpdate "/repeat")) `shouldBe` replyToRepeat
 
     it "handle update with text" $
       let text = "some text"
-      in runIdentity (handleUpdate model (textUpdate text)) `shouldBe` echoText text
+      in runIdentity (getAction vkontakteModel (textUpdate text)) `shouldBe` echoText text
 
     it "handle update with sticker" $
-      runIdentity (handleUpdate model stickerUpdate) `shouldBe` echoSticker
+      runIdentity (getAction vkontakteModel stickerUpdate) `shouldBe` echoSticker
 
     it "handle update with attachments" $
-      runIdentity (handleUpdate model attachmentsUpdate) `shouldBe` echoAttachments
+      runIdentity (getAction vkontakteModel attachmentsUpdate) `shouldBe` echoAttachments
+
+    it "handle update with payload" $
+      let n = 3
+      in runIdentity (getAction vkontakteModel (textUpdate $ "/" <> gshow n)) `shouldBe` SetRepeatNumber 12345678 n

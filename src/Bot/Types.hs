@@ -3,36 +3,19 @@
 {-# LANGUAGE TypeFamilies    #-}
 module Bot.Types where
 
-import           Control.Monad              (foldM)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Map.Strict
 import           Data.Text                  (Text)
 
-import           Logging                    (Priority, logInfo, logWarning)
+import           Logging                    (Priority)
 import           Utils                      (deriveManyJSON, dropPrefixOptions)
 
 
 class Show env => Bot env where
   type BotIncome env
-  type BotUpdate env
 
-  getIncome   :: Model env -> IO (Either L8.ByteString (BotIncome env))
-
-  handleIncomes :: Model env -> BotIncome env -> IO (Model env)
-  handleIncomes model income =
-    case extractUpdates income model of
-      Nothing      -> logWarning (logLevel model) "Can't get Updates." >> pure model
-      Just []      -> logInfo (logLevel model) "Updates are empty."    >> pure model
-      Just updates -> logInfo (logLevel model) "Handling updates."
-              >> let model' = updateModel model income
-              in foldM handleIncome model' updates
-
-  handleIncome :: Model env -> BotUpdate env  -> IO (Model env)
-
-  updateModel :: Model env -> BotIncome env -> Model env
-  updateModel = const
-
-  extractUpdates :: BotIncome env -> Model env -> Maybe [BotUpdate env]
+  getIncome    :: Model env -> IO (Either L8.ByteString (BotIncome env))
+  handleIncome :: Model env -> BotIncome env -> IO (Model env)
 
   setRepeatNumber :: Int -> Int -> Model env -> Model env
   setRepeatNumber userId n model@Model{usersSettings=usersSettings} =
@@ -45,7 +28,7 @@ data Model env =
     , platformEnv   :: env
     , usersSettings :: UserSettings
     , logLevel      :: Priority
-    } deriving Show
+    } deriving (Show, Eq)
 
 data BotSettings =
   BotSettings

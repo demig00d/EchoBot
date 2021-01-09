@@ -4,77 +4,44 @@ module ConfigurationSpec where
 import qualified Data.ByteString.Char8 as S8 (ByteString)
 import           Test.Hspec
 
-import           Bot.Types
+import           Common
 import           Configuration
-import           Logging
 
 
 rawTelegramConfig :: S8.ByteString
 rawTelegramConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"Telegram\",\
   \\"token\": \"<token>\",\
   \\"log_level\": \"Debug\"\
 \}"
 
-telegramConfig :: Config
-telegramConfig =
-  Config
-    { cBotSettings =
-       BotSettings
-         { bHelpMessage = "I am bot that can echo your messages."
-         , bRepeatMessage = "Choose number of repeats:"
-         , bNumberOfRepeats = 2
-         }
-    , cPlatformName = "telegram"
-    , cToken = "<token>"
-    , cGroupId  = Nothing
-    , cLogLevel = Debug
-    }
-
-
 rawVKontakteConfig :: S8.ByteString
 rawVKontakteConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"VKontakte\",\
   \\"token\": \"<token>\",\
-  \\"group_id\": \"123456\",\
+  \\"group_id\": \"" <> groupId <> "\",\
   \\"log_level\": \"Debug\"\
 \}"
-
-vkontakteConfig :: Config
-vkontakteConfig =
-  Config
-    { cBotSettings =
-       BotSettings
-         { bHelpMessage = "I am bot that can echo your messages."
-         , bRepeatMessage = "Choose number of repeats:"
-         , bNumberOfRepeats = 2
-         }
-    , cPlatformName = "vkontakte"
-    , cToken = "<token>"
-    , cGroupId  = Just "123456"
-    , cLogLevel = Debug
-    }
-
 
 rawWrongTelegramConfig :: S8.ByteString
 rawWrongTelegramConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"Telegram\",\
   \\"log_level\": \"Debug\"\
@@ -85,9 +52,9 @@ rawWrongVKontakteConfig :: S8.ByteString
 rawWrongVKontakteConfig = "{\
   \\"bot_settings\":\
     \{\
-      \\"help_message\": \"I am bot that can echo your messages.\",\
-      \\"repeat_message\": \"Choose number of repeats:\",\
-      \\"number_of_repeats\": 2\
+      \\"help_message\": \"" <> helpMessage <> "\",\
+      \\"repeat_message\": \"" <> repeatMessage <> "\",\
+      \\"number_of_repeats\":" <> repeats <> "\
     \},\
   \\"platform_name\":  \"VKontakte\",\
   \\"token\": \"<token>\",\

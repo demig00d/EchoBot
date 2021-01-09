@@ -13,7 +13,7 @@ import           Prelude                    hiding (log)
 
 import           Data.UrlEncoded            (ToUrlEncoded, toUrlEncoded)
 import           Requests                   (Handler (..), hContentType,
-                                             urlEncode)
+                                             sendPost, urlEncode)
 import           Utils                      (deriveManyJSON, dropPrefixOptions)
 
 
@@ -54,6 +54,20 @@ getName = helper . show . toConstr where
   helper2 a | null a = []
             | isUpper (head a) = '.' : toLower (head a) : tail a
             | otherwise = head a : helper2 (tail a)
+
+
+groupsGetLongPollServer ::
+  String -> String -> String
+  -> (S8.ByteString -> IO ())
+  -> IO (Either L8.ByteString L8.ByteString)
+groupsGetLongPollServer groupId cToken apiVersion logger =
+  sendPost .
+    encodeRequest logger $
+      GroupsGetLongPollServer
+        { gAccessToken = cToken
+        , gGroupId = groupId
+        , gV = apiVersion
+        }
 
 
 encodeRequest :: (S8.ByteString -> IO ()) -> Method -> Requests.Handler

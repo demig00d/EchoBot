@@ -1,11 +1,19 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
-module Bot.VKontakte where
+module Bot.VKontakte
+  ( getModel
+  , encodeGetIncome
+  , VKontakteEnv(..)
+  , Action(..)
+  , getAction
+  , groupsGetLongPollServer
+  ) where
 
 import           Control.Applicative        ((<|>))
-import           Control.Monad              (replicateM_)
+import           Control.Monad              (foldM, replicateM_)
 import           Data.Aeson                 (encode)
+import qualified Data.ByteString.Char8      as S8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
 import           Data.Function              ((&))
 import           Data.Functor               ((<&>))
@@ -17,7 +25,7 @@ import           Logging
 import           Requests
 import           Utils
 import           VKontakte.API              (Keyboard (..), Method (..),
-                                             mkButton)
+                                             groupsGetLongPollServer, mkButton)
 import qualified VKontakte.API              as VKontakte (encodeRequest)
 import           VKontakte.Types
 
@@ -32,7 +40,7 @@ data VKontakteEnv =
     , server  :: String
     , key     :: String
     , ts      :: String
-    } deriving Show
+    } deriving (Show, Eq)
 
 
 -- Auxiliary types for update handling
@@ -45,7 +53,6 @@ data Action
 
 instance Bot VKontakteEnv where
   type BotIncome VKontakteEnv = Response
-  type BotUpdate VKontakteEnv = Update
 
   getIncome model@Model{logLevel} = do
     logInfo' logLevel "Send request to VKontakte server and wait for response."
@@ -59,28 +66,36 @@ instance Bot VKontakteEnv where
         logDebug logLevel response
         pure $ eitherDecode response
 
-  handleIncome model update = do
-    action <- handleUpdate model update
-    case action of
-      SetRepeatNumber userId n -> do
-        logInfo' (logLevel model) ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
-        pure $ setRepeatNumber userId n model
-      sendAction -> do
-        handleSendAction model sendAction
-        pure model
-
-  updateModel model@Model{platformEnv=platformEnv} response =
-    case rTs response of
-      Nothing        -> model
-      Just timestamp ->
-        let platformEnv' = platformEnv{ts = timestamp}
-        in model{platformEnv=platformEnv'}
-
-  extractUpdates income _ = rUpdates income
+  handleIncome model@Model{logLevel} income =
+    case rUpdates income of
+      Nothing      -> logWarning' logLevel "Can't get Updates." >> pure model
+      Just []      -> logInfo' logLevel "Updates are empty."    >> pure model
+      Just updates -> logInfo' logLevel "Handling updates."
+              >> let model' = updateModel model income
+              in foldM handleUpdate model' updates
 
 
-handleUpdate :: Logger m => Model VKontakteEnv -> Update -> m Action
-handleUpdate model update =
+updateModel :: Model VKontakteEnv -> Response -> Model VKontakteEnv
+updateModel model@Model{platformEnv=platformEnv} response =
+  case rTs response of
+    Nothing        -> model
+    Just timestamp ->
+      let platformEnv' = platformEnv{ts = timestamp}
+      in model{platformEnv=platformEnv'}
+
+handleUpdate :: Model VKontakteEnv -> Update -> IO (Model VKontakteEnv)
+handleUpdate model update = do
+  action <- getAction model update
+  case action of
+    SetRepeatNumber userId n -> do
+      logInfo' (logLevel model) ("Number of repeats for user: " <> gshow userId <> " changed to " <> gshow n <> ".")
+      pure $ setRepeatNumber userId n model
+    sendAction -> do
+      handleSendAction model sendAction
+      pure model
+
+getAction :: Logger m => Model VKontakteEnv -> Update -> m Action
+getAction model update =
     case oMessage $ uObject update of
       Just msg -> handleMessage model msg
       _        ->
@@ -181,16 +196,16 @@ toAttachmentFormat Attachment{..} =
     helper Media{..} = aType <> gshow mOwnerId <> "_" <> gshow mId <> maybe "" ("_" <>) mAccessKey
 
 
-getModel :: Config -> IO (Either L8.ByteString (Model VKontakteEnv))
-getModel Config{cGroupId = Nothing} = pure $ Left "group_id is required for VKontakte."
-getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} = do
-  let request = VKontakte.encodeRequest (logDebug cLogLevel) $
-                    GroupsGetLongPollServer
-                        { gAccessToken = cToken
-                        , gGroupId = groupId
-                        , gV = apiVersion
-                        }
-  rawResponse <- sendPost request
+getModel ::
+  Logger m => Config
+  -> (String -> String -> String
+  -> (S8.ByteString -> IO ())
+  -> m (Either L8.ByteString L8.ByteString))
+  -> m (Either L8.ByteString (Model VKontakteEnv))
+getModel Config{cGroupId = Nothing} _checkMethod = pure $ Left "group_id is required for VKontakte."
+getModel Config{cGroupId = Just groupId, cToken, cLogLevel, cBotSettings} checkMethod = do
+
+  rawResponse <- checkMethod groupId cToken apiVersion (logDebug cLogLevel)
 
   logDebug cLogLevel rawResponse
   pure $ do
